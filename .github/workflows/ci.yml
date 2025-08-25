@@ -131,11 +131,13 @@ jobs:
         find build/generated -name "*.kt" -type f
         
         # Verify content
-        if [ -f "build/generated/protokotlin/TestMessage.kt" ]; then
+        if [ -f "build/generated/source/protokotlin/TestMessage.kt" ]; then
           echo "✅ Plugin test passed - TestMessage.kt generated"
-          head -20 build/generated/protokotlin/TestMessage.kt
+          head -20 build/generated/source/protokotlin/TestMessage.kt
         else
           echo "❌ Plugin test failed - TestMessage.kt not found"
+          echo "Looking for files in build/generated/:"
+          find build/generated -name "*.kt" -type f || true
           exit 1
         fi
         
