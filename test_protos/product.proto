@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package product;
+
+message Product {
+    string id = 1;
+    string name = 2;
+    string description = 3;
+    double price = 4;
+    int32 stock_quantity = 5;
+    Category category = 6;
+    repeated string tags = 7;
+}
+
+message Category {
+    int32 id = 1;
+    string name = 2;
+    string display_name = 3;
+}
+
+enum ProductStatus {
+    DRAFT = 0;
+    PUBLISHED = 1;
+    DISCONTINUED = 2;
+}
