@@ -77,8 +77,8 @@ publishing {
             
             pom {
                 name.set("ProtoKotlin")
-                description.set("Generate Kotlin DTOs from Protocol Buffer files")
-                url.set("https://github.com/yourusername/protokotlin")
+                description.set("Generate Kotlin DTOs from Protocol Buffer files compatible with kotlinx.serialization.protobuf")
+                url.set("https://github.com/markusfluer/protokotlin")
                 
                 licenses {
                     license {
@@ -89,10 +89,27 @@ publishing {
                 
                 developers {
                     developer {
-                        id.set("protokotlin")
-                        name.set("ProtoKotlin Team")
+                        id.set("markusfluer")
+                        name.set("Markus Fluer")
                     }
                 }
+                
+                scm {
+                    connection.set("scm:git:git://github.com/markusfluer/protokotlin.git")
+                    developerConnection.set("scm:git:ssh://github.com/markusfluer/protokotlin.git")
+                    url.set("https://github.com/markusfluer/protokotlin")
+                }
+            }
+        }
+    }
+    
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/markusfluer/protokotlin")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR")
+                password = System.getenv("GITHUB_TOKEN")
             }
         }
     }

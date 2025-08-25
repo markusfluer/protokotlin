@@ -1,0 +1,80 @@
+name: Publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish'
+        required: true
+        default: '1.0.0'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v3
+      with:
+        gradle-version: wrapper
+        
+    - name: Make gradlew executable
+      run: chmod +x gradlew
+      
+    - name: Set version from release tag
+      if: github.event_name == 'release'
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        echo "Publishing version: $VERSION"
+        
+    - name: Set version from manual input
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+        echo "Publishing version: ${{ github.event.inputs.version }}"
+        
+    - name: Update version in build.gradle.kts
+      run: |
+        sed -i "s/version = \".*\"/version = \"$VERSION\"/" build.gradle.kts
+        echo "Updated version to: $VERSION"
+        
+    - name: Run tests
+      run: ./gradlew test
+      
+    - name: Build plugin
+      run: ./gradlew build
+      
+    - name: Publish to GitHub Packages
+      run: ./gradlew publish
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_ACTOR: ${{ github.actor }}
+        
+    - name: Create GitHub Package summary
+      run: |
+        echo "## 📦 Published Package" >> $GITHUB_STEP_SUMMARY
+        echo "- **Version:** $VERSION" >> $GITHUB_STEP_SUMMARY
+        echo "- **Plugin ID:** de.markusfluer.protokotlin.plugin" >> $GITHUB_STEP_SUMMARY
+        echo "- **Repository:** ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Usage in projects:" >> $GITHUB_STEP_SUMMARY
+        echo '```kotlin' >> $GITHUB_STEP_SUMMARY
+        echo 'plugins {' >> $GITHUB_STEP_SUMMARY
+        echo '    id("de.markusfluer.protokotlin.plugin") version "'$VERSION'"' >> $GITHUB_STEP_SUMMARY
+        echo '}' >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
