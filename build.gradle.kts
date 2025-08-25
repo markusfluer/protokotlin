@@ -42,6 +42,15 @@ application {
     mainClass.set("com.protokotlin.MainKt")
 }
 
+// Fix duplicate handling for distribution tasks
+tasks.withType<Tar> {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.withType<Zip> {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
 tasks.jar {
     manifest {
         attributes["Main-Class"] = "com.protokotlin.MainKt"
