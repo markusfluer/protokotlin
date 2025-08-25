@@ -80,38 +80,6 @@ gradlePlugin {
 }
 
 publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            from(components["java"])
-            
-            pom {
-                name.set("ProtoKotlin")
-                description.set("Generate Kotlin DTOs from Protocol Buffer files compatible with kotlinx.serialization.protobuf")
-                url.set("https://github.com/markusfluer/protokotlin")
-                
-                licenses {
-                    license {
-                        name.set("MIT License")
-                        url.set("https://opensource.org/licenses/MIT")
-                    }
-                }
-                
-                developers {
-                    developer {
-                        id.set("markusfluer")
-                        name.set("Markus Fluer")
-                    }
-                }
-                
-                scm {
-                    connection.set("scm:git:git://github.com/markusfluer/protokotlin.git")
-                    developerConnection.set("scm:git:ssh://github.com/markusfluer/protokotlin.git")
-                    url.set("https://github.com/markusfluer/protokotlin")
-                }
-            }
-        }
-    }
-    
     repositories {
         maven {
             name = "GitHubPackages"
@@ -119,6 +87,41 @@ publishing {
             credentials {
                 username = System.getenv("GITHUB_ACTOR")
                 password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+}
+
+// Configure the plugin publication that's automatically created
+afterEvaluate {
+    publishing {
+        publications {
+            withType<MavenPublication> {
+                pom {
+                    name.set("ProtoKotlin")
+                    description.set("Generate Kotlin DTOs from Protocol Buffer files compatible with kotlinx.serialization.protobuf")
+                    url.set("https://github.com/markusfluer/protokotlin")
+                    
+                    licenses {
+                        license {
+                            name.set("MIT License")
+                            url.set("https://opensource.org/licenses/MIT")
+                        }
+                    }
+                    
+                    developers {
+                        developer {
+                            id.set("markusfluer")
+                            name.set("Markus Fluer")
+                        }
+                    }
+                    
+                    scm {
+                        connection.set("scm:git:git://github.com/markusfluer/protokotlin.git")
+                        developerConnection.set("scm:git:ssh://github.com/markusfluer/protokotlin.git")
+                        url.set("https://github.com/markusfluer/protokotlin")
+                    }
+                }
             }
         }
     }

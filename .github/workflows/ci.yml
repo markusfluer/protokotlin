@@ -25,7 +25,7 @@ jobs:
         distribution: 'temurin'
         
     - name: Setup Gradle
-      uses: gradle/gradle-build-action@v3
+      uses: gradle/actions/setup-gradle@v4
       with:
         gradle-version: wrapper
         
@@ -66,9 +66,78 @@ jobs:
     - name: Verify plugin functionality
       run: |
         ./gradlew publishToMavenLocal
-        cd test-plugin-project
-        ../gradlew generateProtoKotlin
-        ls -la build/generated/protokotlin/
+        
+        # Create test project
+        mkdir -p test-project/src/main/proto
+        
+        # Create test proto file
+        cat > test-project/src/main/proto/test.proto << 'EOF'
+        syntax = "proto3";
+        
+        message TestMessage {
+            string name = 1;
+            int32 value = 2;
+            repeated string items = 3;
+        }
+        EOF
+        
+        # Create test build.gradle.kts
+        cat > test-project/build.gradle.kts << 'EOF'
+        plugins {
+            kotlin("jvm") version "2.2.0"
+            id("de.markusfluer.protokotlin.plugin") version "1.0.0"
+        }
+        
+        repositories {
+            mavenLocal()
+            mavenCentral()
+        }
+        
+        dependencies {
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-protobuf:1.6.2")
+        }
+        
+        protokotlin {
+            protoDir.set(file("src/main/proto"))
+            packageName.set("com.test.generated")
+        }
+        
+        java {
+            toolchain {
+                languageVersion.set(JavaLanguageVersion.of(21))
+            }
+        }
+        EOF
+        
+        # Create settings.gradle.kts
+        cat > test-project/settings.gradle.kts << 'EOF'
+        rootProject.name = "test-project"
+        
+        pluginManagement {
+            repositories {
+                mavenLocal()
+                gradlePluginPortal()
+                mavenCentral()
+            }
+        }
+        EOF
+        
+        # Test plugin
+        cd test-project
+        ../gradlew generateProtoKotlin --stacktrace
+        
+        # Verify generated files
+        echo "Generated files:"
+        find build/generated -name "*.kt" -type f
+        
+        # Verify content
+        if [ -f "build/generated/protokotlin/TestMessage.kt" ]; then
+          echo "✅ Plugin test passed - TestMessage.kt generated"
+          head -20 build/generated/protokotlin/TestMessage.kt
+        else
+          echo "❌ Plugin test failed - TestMessage.kt not found"
+          exit 1
+        fi
         
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4

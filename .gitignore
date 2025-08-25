@@ -65,3 +65,4 @@ debug_out/
 debug_test.proto
 example.proto
 test-plugin-project/
+test-project/
