@@ -4,6 +4,7 @@ plugins {
     application
     `java-gradle-plugin`
     `maven-publish`
+    id("com.gradle.plugin-publish") version "1.2.1"
 }
 
 group = "de.markusfluer.protokotlin"
@@ -68,59 +69,47 @@ tasks.register<Jar>("fatJar") {
 }
 
 gradlePlugin {
+    website.set("https://github.com/markusfluer/protokotlin")
+    vcsUrl.set("https://github.com/markusfluer/protokotlin.git")
+    
     plugins {
         create("protokotlin") {
             id = "de.markusfluer.protokotlin.plugin"
             implementationClass = "com.protokotlin.gradle.ProtoKotlinPlugin"
             displayName = "ProtoKotlin Gradle Plugin"
-            description = "Generate Kotlin DTOs from Protocol Buffer files compatible with kotlinx.serialization.protobuf"
-            tags.set(listOf("protobuf", "kotlin", "serialization", "code-generation"))
+            description = "Generate Kotlin DTOs from Protocol Buffer files compatible with kotlinx.serialization.protobuf. Supports proto3 syntax with proper nullable fields, @ProtoPacked annotations, and seamless build integration."
+            tags.set(listOf("protobuf", "kotlin", "serialization", "code-generation", "dto", "proto3", "kotlinx-serialization"))
         }
     }
 }
 
+// Configure the plugin publication metadata
 publishing {
-    repositories {
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/markusfluer/protokotlin")
-            credentials {
-                username = System.getenv("GITHUB_ACTOR")
-                password = System.getenv("GITHUB_TOKEN")
-            }
-        }
-    }
-}
-
-// Configure the plugin publication that's automatically created
-afterEvaluate {
-    publishing {
-        publications {
-            withType<MavenPublication> {
-                pom {
-                    name.set("ProtoKotlin")
-                    description.set("Generate Kotlin DTOs from Protocol Buffer files compatible with kotlinx.serialization.protobuf")
+    publications {
+        withType<MavenPublication> {
+            pom {
+                name.set("ProtoKotlin")
+                description.set("Generate Kotlin DTOs from Protocol Buffer files compatible with kotlinx.serialization.protobuf")
+                url.set("https://github.com/markusfluer/protokotlin")
+                
+                licenses {
+                    license {
+                        name.set("MIT License")
+                        url.set("https://opensource.org/licenses/MIT")
+                    }
+                }
+                
+                developers {
+                    developer {
+                        id.set("markusfluer")
+                        name.set("Markus Fluer")
+                    }
+                }
+                
+                scm {
+                    connection.set("scm:git:git://github.com/markusfluer/protokotlin.git")
+                    developerConnection.set("scm:git:ssh://github.com/markusfluer/protokotlin.git")
                     url.set("https://github.com/markusfluer/protokotlin")
-                    
-                    licenses {
-                        license {
-                            name.set("MIT License")
-                            url.set("https://opensource.org/licenses/MIT")
-                        }
-                    }
-                    
-                    developers {
-                        developer {
-                            id.set("markusfluer")
-                            name.set("Markus Fluer")
-                        }
-                    }
-                    
-                    scm {
-                        connection.set("scm:git:git://github.com/markusfluer/protokotlin.git")
-                        developerConnection.set("scm:git:ssh://github.com/markusfluer/protokotlin.git")
-                        url.set("https://github.com/markusfluer/protokotlin")
-                    }
                 }
             }
         }

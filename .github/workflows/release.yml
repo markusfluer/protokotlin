@@ -10,7 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      packages: write
       
     steps:
     - name: Checkout code
@@ -44,11 +43,8 @@ jobs:
     - name: Run tests
       run: ./gradlew test
       
-    - name: Build and publish
-      run: ./gradlew build publish
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        GITHUB_ACTOR: ${{ github.actor }}
+    - name: Build plugin
+      run: ./gradlew build
         
     - name: Create fat JAR for CLI
       run: ./gradlew fatJar
@@ -77,23 +73,16 @@ jobs:
           java -jar protokotlin-${{ env.VERSION }}-all.jar input.proto -o output -p com.example
           ```
           
-          ### 📦 GitHub Package
-          The Gradle plugin is available from GitHub Packages:
-          ```kotlin
-          // settings.gradle.kts
-          pluginManagement {
-              repositories {
-                  maven {
-                      url = uri("https://maven.pkg.github.com/markusfluer/protokotlin")
-                      credentials {
-                          username = "YOUR_GITHUB_USERNAME"
-                          password = "YOUR_GITHUB_TOKEN"
-                      }
-                  }
-                  gradlePluginPortal()
-              }
-          }
-          ```
+          ### 📦 Installation
+          The Gradle plugin is available from the Gradle Plugin Portal - no additional repository configuration needed!
+          
+          ### ✨ Features
+          - ✅ Proto3 compliant code generation
+          - ✅ kotlinx.serialization.protobuf compatible
+          - ✅ Nullable fields with null defaults
+          - ✅ @ProtoPacked annotations for repeated fields
+          - ✅ Automatic build integration
+          - ✅ Directory processing support
         prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') || contains(github.ref, 'rc') }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
