@@ -1,14 +1,17 @@
 # ProtoKotlin
 
-A CLI tool that compiles Protocol Buffer files to read-only Kotlin DTOs compatible with kotlinx.serialization.protobuf.
+A CLI tool and Gradle plugin that compiles Protocol Buffer files to read-only Kotlin DTOs compatible with kotlinx.serialization.protobuf.
 
 ## Features
 
 - Parse .proto files and generate Kotlin data classes
-- Support for scalar types, messages, enums, and repeated fields
+- Support for scalar types, messages, enums, repeated fields, and oneofs
+- Cross-file type references and imports
+- Configurable package structure (flat or nested)
 - Process single files or entire directories of .proto files
+- Well-known types support (Timestamp, Duration, etc.)
 - Compatible with kotlinx.serialization.protobuf
-- Command-line interface for easy integration
+- Command-line interface and Gradle plugin for easy integration
 
 ## Usage
 
@@ -91,16 +94,16 @@ data class Person(
 
 ## Project Status
 
-✅ **Production Ready** - v1.0.0 Complete
+✅ **Production Ready** - v2.1.0 Complete
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed feature list and [DEVELOPMENT.md](DEVELOPMENT.md) for technical documentation.
 
-### Latest Features (v1.0.0)
-- 🔄 **Proto3 Compliance**: Updated field generation to follow kotlinx.serialization.protobuf best practices
-- 📁 **Directory Processing**: Added `--dir` option for batch processing multiple .proto files  
-- 🏷️ **Enhanced Annotations**: Added `@ProtoPacked` for lists and proper nullable field handling
-- 🔌 **Gradle Plugin**: Complete Gradle plugin for seamless project integration
-- ✅ **Comprehensive Testing**: Full test suite with real-world examples
+### Latest Features (v2.1.0)
+- 📦 **Flat Package Structure**: New `flatPackageStructure` option prevents nested package issues
+- 🔗 **Cross-File Type References**: Types from different proto files now properly resolve
+- 🏗️ **Package Consistency**: Standardized package structure across all generated files
+- 🧪 **Enhanced Testing**: Comprehensive test coverage for all new features
+- 🛠️ **Better Maintainability**: Centralized package resolution utilities
 
 ## Gradle Plugin
 
@@ -111,7 +114,7 @@ ProtoKotlin is now available as a Gradle plugin! See [PLUGIN_USAGE.md](PLUGIN_US
 ```kotlin
 plugins {
     kotlin("jvm")
-    id("de.markusfluer.protokotlin.plugin") version "2.0.3"
+    id("de.markusfluer.protokotlin.plugin") version "2.1.0"
 }
 
 dependencies {
@@ -121,6 +124,7 @@ dependencies {
 protokotlin {
     protoDir.set(file("src/main/proto"))
     packageName.set("com.example.generated")
+    flatPackageStructure.set(true)  // NEW: Prevents nested package issues
 }
 ```
 
@@ -129,3 +133,43 @@ The plugin automatically:
 - ✅ Generates Kotlin DTOs with proper annotations
 - ✅ Integrates with your build process
 - ✅ Supports incremental builds and caching
+- ✅ Handles cross-file type references
+- ✅ Configurable package structure (flat or nested)
+
+## Configuration Options
+
+### flatPackageStructure (New in v2.1.0)
+
+Controls how proto packages are mapped to Kotlin packages:
+
+```kotlin
+protokotlin {
+    flatPackageStructure.set(true)   // Recommended for most projects
+    flatPackageStructure.set(false)  // Legacy nested structure
+}
+```
+
+**Flat Package Structure (recommended):**
+- All generated types use the same base package
+- Prevents import resolution issues
+- Cleaner generated code
+
+```kotlin
+// All files use: package com.example.generated
+@Serializable
+data class SendRequest(
+    val mood: Mood? = null  // Direct reference, no imports needed
+)
+```
+
+**Nested Package Structure (legacy):**
+- Creates nested packages from proto structure
+- May require additional imports for cross-file references
+
+```kotlin  
+// Files use: package com.example.generated.mypackage_v1
+@Serializable
+data class SendRequest(
+    val mood: com.example.generated.mypackage_v1.Mood? = null
+)
+```

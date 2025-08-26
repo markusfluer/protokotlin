@@ -1,5 +1,37 @@
 # ProtoKotlin Changelog
 
+## v2.1.0 - Flat Package Structure & Cross-File References
+
+### 🚀 Major New Features
+- ✅ **Flat Package Structure**: New `flatPackageStructure` configuration option prevents nested package issues like `heythere_v1.heythere_v1`
+- ✅ **Cross-File Type References**: Types from different proto files in the same package now properly resolve without imports
+- ✅ **Package Structure Consistency**: All generated files use consistent package declarations
+
+### 🛠️ Technical Improvements
+- ✅ **Centralized Package Utils**: Created `PackageUtils` utility class for consistent package name resolution
+- ✅ **Enhanced TypeRegistry**: Improved cross-file type resolution logic
+- ✅ **Better Import Resolution**: Fixed nested package import generation in `KotlinGenerator`
+
+### 🧪 Comprehensive Testing  
+- ✅ **FlatPackageStructureTest**: Validates flat vs nested package behavior
+- ✅ **CrossReferenceTest**: Verifies cross-file type references work correctly
+- ✅ **PluginFlatPackageTest**: Tests Gradle plugin integration with new features
+- ✅ **DebugCrossRefTest**: Detailed behavior verification and debugging
+
+### 📝 Configuration Example
+```kotlin
+protokotlin {
+    protoDir.set(file("src/main/proto"))
+    packageName.set("com.example.generated")
+    flatPackageStructure.set(true)  // NEW: Prevents nested package issues
+}
+```
+
+### 🎯 Migration Benefits
+- Resolves HeyThere app kotlinx.serialization migration blockers
+- Clean import paths without nested package structures
+- Better cross-file type resolution for complex proto projects
+
 ## v2.0.3 - Plugin Integration Fix
 
 ### 🛠️ Critical Bug Fix

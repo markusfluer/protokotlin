@@ -11,7 +11,7 @@ Add to your `build.gradle.kts`:
 ```kotlin
 plugins {
     kotlin("jvm")
-    id("de.markusfluer.protokotlin.plugin") version "2.0.3"
+    id("de.markusfluer.protokotlin.plugin") version "2.1.0"
 }
 
 dependencies {
@@ -27,6 +27,7 @@ protokotlin {
     outputDir.set(file("build/generated/protokotlin")) // Default: build/generated/source/protokotlin
     packageName.set("com.example.generated")        // Default: "generated"
     protoPath.setFrom(files("proto/imports"))       // Additional proto import paths (optional)
+    flatPackageStructure.set(true)                  // NEW in v2.1.0: Recommended for most projects
 }
 ```
 
@@ -74,6 +75,9 @@ protokotlin {
     
     // Additional proto import directories (like protoc -I option)
     protoPath.setFrom(files("proto/common", "proto/third_party"))
+    
+    // NEW in v2.1.0: Package structure configuration
+    flatPackageStructure.set(true)  // Recommended: prevents nested package issues
 }
 ```
 
@@ -85,6 +89,7 @@ protokotlin {
 | `outputDir` | `DirectoryProperty` | `build/generated/source/protokotlin` | Output directory for generated Kotlin files |
 | `packageName` | `Property<String>` | `"generated"` | Package name for generated Kotlin classes |
 | `protoPath` | `ConfigurableFileCollection` | `[]` | Additional directories to search for imported proto files (similar to protoc `-I`) |
+| `flatPackageStructure` | `Property<Boolean>` | `false` | **NEW v2.1.0**: Use flat package structure to prevent nested package issues |
 
 ## Generated Code Features
 
