@@ -1,5 +1,36 @@
 # ProtoKotlin Changelog
 
+## v2.0.2 - Enhanced Test Coverage
+
+### 🧪 Testing Improvements
+- ✅ **Comprehensive Unit Tests**: Added extensive unit tests for `google.protobuf.Timestamp` to `kotlinx.datetime.Instant` conversion
+- ✅ **Well-Known Types Testing**: Complete test coverage for all Google Protocol Buffer well-known types
+- ✅ **Integration Testing**: End-to-end tests through ProtoCompiler pipeline
+- ✅ **Edge Case Coverage**: Tests for oneofs, maps, repeated fields, and mixed well-known types
+
+### 📋 Test Files Added
+- **WellKnownTypesTest.kt**: Comprehensive integration tests for timestamp/duration conversions
+- **TimestampConversionTest.kt**: Focused unit tests for specific type resolution and mapping
+
+### 🔍 Validated Features
+- Auto-conversion of timestamps to kotlinx.datetime.Instant
+- Auto-conversion of durations to kotlin.time.Duration  
+- Proper import generation and field typing
+- Proto annotation preservation
+- Collection support with well-known types
+- Full pipeline integration
+
+## v2.0.1 - Empty Message Fix
+
+### 🛠️ Bug Fixes
+- ✅ **Fixed Empty Class Generation**: Empty proto messages now generate as `@Serializable object` instead of invalid `data class()` syntax
+- ✅ **Improved Code Validity**: All generated Kotlin code is now syntactically correct and compiles successfully
+
+### 📝 Code Generation Updates
+- **Empty Messages**: `message Empty {}` → `@Serializable public object Empty`
+- **Regular Messages**: `message User { string name = 1; }` → `@Serializable public data class User(...)`
+- **Oneof Messages**: Messages with oneofs continue to generate as data classes with proper constructor parameters
+
 ## v2.0.0 - Java 21 & Enhanced Type Support
 
 ### 🔧 Breaking Changes

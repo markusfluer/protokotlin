@@ -62,9 +62,23 @@ class KotlinGenerator(
     }
     
     private fun generateDataClass(message: ProtoMessage, protoFile: ProtoFile): TypeSpec {
-        val classBuilder = TypeSpec.classBuilder(message.name)
-            .addModifiers(KModifier.DATA)
-            .addAnnotation(protoBufSerializableAnnotation)
+        // Check if message is empty (no fields and no oneofs)
+        val isEmpty = message.fields.isEmpty() && message.oneofs.isEmpty()
+        
+        val classBuilder = if (isEmpty) {
+            // Generate object for empty messages since data classes require at least one parameter
+            TypeSpec.objectBuilder(message.name)
+                .addAnnotation(protoBufSerializableAnnotation)
+        } else {
+            TypeSpec.classBuilder(message.name)
+                .addModifiers(KModifier.DATA)
+                .addAnnotation(protoBufSerializableAnnotation)
+        }
+        
+        // Skip constructor setup for empty objects
+        if (isEmpty) {
+            return classBuilder.build()
+        }
         
         val constructorBuilder = FunSpec.constructorBuilder()
         
