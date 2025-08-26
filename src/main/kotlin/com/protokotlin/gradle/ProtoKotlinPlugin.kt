@@ -19,6 +19,7 @@ class ProtoKotlinPlugin : Plugin<Project> {
             task.protoDir.set(extension.protoDir)
             task.outputDir.set(extension.outputDir)
             task.packageName.set(extension.packageName)
+            task.protoPath.setFrom(extension.protoPath)
         }
         
         // Add generated sources to Kotlin source sets if Kotlin plugin is applied

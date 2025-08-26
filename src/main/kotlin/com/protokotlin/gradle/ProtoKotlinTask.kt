@@ -1,8 +1,8 @@
 package com.protokotlin.gradle
 
-import com.protokotlin.generator.KotlinGenerator
-import com.protokotlin.parser.ProtoParser
+import com.protokotlin.compiler.ProtoCompiler
 import org.gradle.api.DefaultTask
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.*
@@ -20,6 +20,10 @@ abstract class ProtoKotlinTask : DefaultTask() {
     
     @get:Input
     abstract val packageName: Property<String>
+    
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val protoPath: ConfigurableFileCollection
     
     init {
         description = "Generate Kotlin DTOs from Protocol Buffer files"
@@ -54,32 +58,30 @@ abstract class ProtoKotlinTask : DefaultTask() {
             outputDirFile.mkdirs()
         }
         
-        val parser = ProtoParser()
-        val generator = KotlinGenerator(pkg)
-        var totalGeneratedFiles = 0
+        // Build proto search paths: proto directory + additional paths
+        val searchPaths = mutableListOf<File>()
+        searchPaths.add(protoDirFile)
+        searchPaths.addAll(protoPath.files)
         
-        protoFiles.forEach { protoFile ->
-            logger.info("Processing ${protoFile.name}")
+        logger.info("ProtoKotlin: Proto search paths: ${searchPaths.map { it.absolutePath }}")
+        
+        // Use ProtoCompiler for full feature support including well-known types
+        val compiler = ProtoCompiler(pkg, searchPaths)
+        
+        try {
+            val generatedFiles = compiler.compile(protoFiles)
             
-            try {
-                val protoContent = protoFile.readText()
-                val parsedProto = parser.parse(protoContent, protoFile.name)
-                val generatedFiles = generator.generate(parsedProto)
-                
-                generatedFiles.forEach { (fileName, content) ->
-                    val outputFile = File(outputDirFile, fileName)
-                    outputFile.parentFile?.mkdirs()
-                    outputFile.writeText(content)
-                    logger.info("Generated: ${outputFile.relativeTo(project.projectDir)}")
-                }
-                
-                totalGeneratedFiles += generatedFiles.size
-            } catch (e: Exception) {
-                throw org.gradle.api.GradleException("Failed to process ${protoFile.name}: ${e.message}", e)
+            generatedFiles.forEach { (fileName, content) ->
+                val outputFile = File(outputDirFile, fileName)
+                outputFile.parentFile?.mkdirs()
+                outputFile.writeText(content)
+                logger.info("Generated: ${outputFile.relativeTo(project.projectDir)}")
             }
+            
+            logger.lifecycle("ProtoKotlin: Successfully generated ${generatedFiles.size} Kotlin file(s) from ${protoFiles.size} proto file(s)")
+        } catch (e: Exception) {
+            throw org.gradle.api.GradleException("Failed to process proto files: ${e.message}", e)
         }
-        
-        logger.lifecycle("ProtoKotlin: Successfully generated $totalGeneratedFiles Kotlin file(s) from ${protoFiles.size} proto file(s)")
     }
     
     private fun findProtoFiles(directory: File): List<File> {

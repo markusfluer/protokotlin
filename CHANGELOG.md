@@ -1,5 +1,31 @@
 # ProtoKotlin Changelog
 
+## v2.0.3 - Plugin Integration Fix
+
+### 🛠️ Critical Bug Fix
+- ✅ **Fixed Plugin Timestamp Conversion**: The Gradle plugin now correctly transforms `google.protobuf.Timestamp` to `kotlinx.datetime.Instant`
+- ✅ **Plugin ProtoCompiler Integration**: Plugin now uses the full ProtoCompiler pipeline instead of basic KotlinGenerator
+- ✅ **Complete Feature Parity**: Plugin now supports all CLI features including import resolution, oneof support, and message scheduling
+
+### 🚀 Plugin Enhancements
+- ✅ **Proto Path Support**: Added `protoPath` configuration for additional import directories (like `protoc -I`)
+- ✅ **Comprehensive Integration Tests**: Added PluginIntegrationTest.kt to validate plugin behavior
+- ✅ **Enhanced Documentation**: Updated PLUGIN_USAGE.md with new configuration options
+
+### 🔧 Technical Changes
+- **ProtoKotlinTask**: Now uses ProtoCompiler instead of direct KotlinGenerator
+- **ProtoKotlinExtension**: Added `protoPath: ConfigurableFileCollection` property
+- **ProtoKotlinPlugin**: Updated to wire protoPath configuration
+
+### 📝 Configuration Example
+```kotlin
+protokotlin {
+    protoDir.set(file("src/main/proto"))
+    packageName.set("com.example.generated")
+    protoPath.setFrom(files("proto/imports"))  // New: Import paths
+}
+```
+
 ## v2.0.2 - Enhanced Test Coverage
 
 ### 🧪 Testing Improvements
