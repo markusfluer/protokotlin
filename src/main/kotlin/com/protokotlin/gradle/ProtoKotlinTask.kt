@@ -25,12 +25,16 @@ abstract class ProtoKotlinTask : DefaultTask() {
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val protoPath: ConfigurableFileCollection
     
+    @get:Input
+    abstract val flatPackageStructure: Property<Boolean>
+    
     init {
         description = "Generate Kotlin DTOs from Protocol Buffer files"
         group = "protokotlin"
         
         // Set default values
         packageName.convention("generated")
+        flatPackageStructure.convention(false)
     }
     
     @TaskAction
@@ -66,7 +70,7 @@ abstract class ProtoKotlinTask : DefaultTask() {
         logger.info("ProtoKotlin: Proto search paths: ${searchPaths.map { it.absolutePath }}")
         
         // Use ProtoCompiler for full feature support including well-known types
-        val compiler = ProtoCompiler(pkg, searchPaths)
+        val compiler = ProtoCompiler(pkg, searchPaths, flatPackageStructure.get())
         
         try {
             val generatedFiles = compiler.compile(protoFiles)

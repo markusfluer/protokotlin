@@ -2,12 +2,14 @@ package com.protokotlin.generator
 
 import com.protokotlin.model.*
 import com.protokotlin.resolver.TypeRegistry
+import com.protokotlin.util.PackageUtils
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 
 class KotlinGenerator(
     private val packageName: String,
-    private val typeRegistry: TypeRegistry? = null
+    private val typeRegistry: TypeRegistry? = null,
+    private val flatPackageStructure: Boolean = false
 ) {
     
     private val protoBufSerializableAnnotation = ClassName("kotlinx.serialization", "Serializable")
@@ -200,14 +202,8 @@ class KotlinGenerator(
             if (resolvedType != null) {
                 when (resolvedType) {
                     is TypeRegistry.ResolvedType.Message -> {
-                        val kotlinPackage = typeRegistry.getKotlinPackage(resolvedType)
                         val className = typeRegistry.getKotlinClassName(resolvedType)
-                        return if (kotlinPackage != null && kotlinPackage != packageName) {
-                            // Type from different package/file
-                            ClassName(combinePackageNames(packageName.substringBeforeLast(".${protoFile.packageName?.replace(".", "_") ?: ""}"), kotlinPackage), className)
-                        } else {
-                            ClassName(packageName, className)
-                        }
+                        return resolveTypePackage(resolvedType, className)
                     }
                     is TypeRegistry.ResolvedType.Scalar -> {
                         // Handle well-known types mapped to scalars or special types
@@ -221,13 +217,8 @@ class KotlinGenerator(
                     }
                     is TypeRegistry.ResolvedType.Enum -> {
                         // Handle if message type was actually an enum
-                        val kotlinPackage = typeRegistry.getKotlinPackage(resolvedType)
                         val className = typeRegistry.getKotlinClassName(resolvedType)
-                        return if (kotlinPackage != null && kotlinPackage != packageName) {
-                            ClassName(combinePackageNames(packageName.substringBeforeLast(".${protoFile.packageName?.replace(".", "_") ?: ""}"), kotlinPackage), className)
-                        } else {
-                            ClassName(packageName, className)
-                        }
+                        return resolveTypePackage(resolvedType, className)
                     }
                 }
             }
@@ -247,14 +238,8 @@ class KotlinGenerator(
             if (resolvedType != null) {
                 when (resolvedType) {
                     is TypeRegistry.ResolvedType.Enum -> {
-                        val kotlinPackage = typeRegistry.getKotlinPackage(resolvedType)
                         val className = typeRegistry.getKotlinClassName(resolvedType)
-                        return if (kotlinPackage != null && kotlinPackage != packageName) {
-                            // Type from different package/file
-                            ClassName(combinePackageNames(packageName.substringBeforeLast(".${protoFile.packageName?.replace(".", "_") ?: ""}"), kotlinPackage), className)
-                        } else {
-                            ClassName(packageName, className)
-                        }
+                        return resolveTypePackage(resolvedType, className)
                     }
                     is TypeRegistry.ResolvedType.Scalar -> {
                         // Handle well-known types mapped to scalars or special types
@@ -268,13 +253,8 @@ class KotlinGenerator(
                     }
                     is TypeRegistry.ResolvedType.Message -> {
                         // Handle if enum type was actually a message
-                        val kotlinPackage = typeRegistry.getKotlinPackage(resolvedType)
                         val className = typeRegistry.getKotlinClassName(resolvedType)
-                        return if (kotlinPackage != null && kotlinPackage != packageName) {
-                            ClassName(combinePackageNames(packageName.substringBeforeLast(".${protoFile.packageName?.replace(".", "_") ?: ""}"), kotlinPackage), className)
-                        } else {
-                            ClassName(packageName, className)
-                        }
+                        return resolveTypePackage(resolvedType, className)
                     }
                 }
             }
@@ -287,11 +267,41 @@ class KotlinGenerator(
         return ClassName(packageName, typeName)
     }
     
-    private fun combinePackageNames(basePackage: String, protoPackage: String?): String {
-        return if (protoPackage != null) {
-            "$basePackage.${protoPackage.replace(".", "_")}"
+    
+    /**
+     * Extract the base package name from the current package name
+     */
+    private fun getBasePackageName(): String {
+        // The packageName might already contain proto package structure in legacy mode
+        // For flat mode, it's just the base package
+        // For legacy mode, we need to extract the base part
+        return if (flatPackageStructure) {
+            packageName
         } else {
-            basePackage
+            // In legacy mode, packageName might be "base.proto_package", we want just "base"
+            val parts = packageName.split(".")
+            // Find the first occurrence of a proto package pattern (contains underscore)
+            val protoPackageStartIndex = parts.indexOfFirst { it.contains("_") }
+            if (protoPackageStartIndex > 0) {
+                parts.subList(0, protoPackageStartIndex).joinToString(".")
+            } else {
+                packageName
+            }
+        }
+    }
+    
+    /**
+     * Resolve the package for a type, respecting flatPackageStructure setting
+     */
+    private fun resolveTypePackage(resolvedType: TypeRegistry.ResolvedType, className: String): ClassName {
+        return if (flatPackageStructure) {
+            // All types in same package when using flat structure
+            ClassName(packageName, className)
+        } else {
+            // Use the type's original package structure
+            val protoPackage = typeRegistry!!.getKotlinPackage(resolvedType)
+            val kotlinPackage = PackageUtils.combinePackageNames(getBasePackageName(), protoPackage, flatPackageStructure)
+            ClassName(kotlinPackage, className)
         }
     }
     

@@ -17,4 +17,11 @@ abstract class ProtoKotlinExtension {
      * Similar to protoc's -I/--proto_path option.
      */
     abstract val protoPath: ConfigurableFileCollection
+    
+    /**
+     * Whether to use a flat package structure.
+     * If true, all generated files use the same packageName regardless of proto package structure.
+     * If false, proto packages create nested Kotlin packages (default legacy behavior).
+     */
+    abstract val flatPackageStructure: Property<Boolean>
 }

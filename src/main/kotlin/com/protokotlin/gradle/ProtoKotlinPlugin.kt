@@ -13,6 +13,7 @@ class ProtoKotlinPlugin : Plugin<Project> {
         extension.protoDir.convention(project.layout.projectDirectory.dir("src/main/proto"))
         extension.outputDir.convention(project.layout.buildDirectory.dir("generated/source/protokotlin"))
         extension.packageName.convention("generated")
+        extension.flatPackageStructure.convention(false)  // Default to legacy behavior
         
         // Register the task
         val generateTask = project.tasks.register("generateProtoKotlin", ProtoKotlinTask::class.java) { task ->
@@ -20,6 +21,7 @@ class ProtoKotlinPlugin : Plugin<Project> {
             task.outputDir.set(extension.outputDir)
             task.packageName.set(extension.packageName)
             task.protoPath.setFrom(extension.protoPath)
+            task.flatPackageStructure.set(extension.flatPackageStructure)
         }
         
         // Add generated sources to Kotlin source sets if Kotlin plugin is applied

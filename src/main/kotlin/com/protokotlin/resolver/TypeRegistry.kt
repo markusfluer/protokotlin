@@ -119,13 +119,13 @@ class TypeRegistry {
     }
     
     private fun resolveLocalType(typeName: String, file: ProtoFile, packageName: String?): ResolvedType? {
-        // Try with package prefix
+        // First try with package prefix (this searches across ALL files in the same package)
         val withPackage = buildQualifiedName(packageName, null, typeName)
         
         messages[withPackage]?.let { return ResolvedType.Message(it) }
         enums[withPackage]?.let { return ResolvedType.Enum(it) }
         
-        // Try without package (for nested types)
+        // Try without package (for nested types or unqualified names)
         messages[typeName]?.let { return ResolvedType.Message(it) }
         enums[typeName]?.let { return ResolvedType.Enum(it) }
         
@@ -173,6 +173,8 @@ class TypeRegistry {
     
     /**
      * Get the Kotlin package name for a type
+     * Note: This returns the proto package name. The actual Kotlin package
+     * should be computed by the caller considering flatPackageStructure and basePackage.
      */
     fun getKotlinPackage(type: ResolvedType): String? {
         return when (type) {

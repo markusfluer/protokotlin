@@ -3,6 +3,7 @@ package com.protokotlin.scheduler
 import com.protokotlin.model.*
 import com.protokotlin.resolver.TypeRegistry
 import com.protokotlin.generator.KotlinGenerator
+import com.protokotlin.util.PackageUtils
 
 /**
  * Schedules and organizes message generation across multiple proto files.
@@ -10,7 +11,8 @@ import com.protokotlin.generator.KotlinGenerator
  */
 class MessageScheduler(
     private val basePackageName: String,
-    private val typeRegistry: TypeRegistry
+    private val typeRegistry: TypeRegistry,
+    private val flatPackageStructure: Boolean = false
 ) {
     
     // Collected types from all proto files
@@ -41,7 +43,7 @@ class MessageScheduler(
      * Schedule all types from a proto file for generation
      */
     fun scheduleFile(protoFile: ProtoFile) {
-        val kotlinPackage = combinePackageNames(basePackageName, protoFile.packageName)
+        val kotlinPackage = PackageUtils.combinePackageNames(basePackageName, protoFile.packageName, flatPackageStructure)
         
         // Schedule top-level messages
         protoFile.messages.forEach { message ->
@@ -95,7 +97,7 @@ class MessageScheduler(
         }
         
         // Generate each top-level enum in its own file (nested enums are included with their parent message)
-        enums.filter { it.packageName == combinePackageNames(basePackageName, extractProtoPackage(it.packageName)) }
+        enums.filter { it.packageName == PackageUtils.combinePackageNames(basePackageName, PackageUtils.extractProtoPackage(it.packageName), flatPackageStructure) }
             .forEach { scheduled ->
                 val fileName = "${scheduled.enum.name}.kt"
                 val content = generateEnumFile(scheduled)
@@ -109,7 +111,7 @@ class MessageScheduler(
         // Create a simplified proto file context for the generator
         val contextFile = ProtoFile(
             fileName = scheduled.sourceFile,
-            packageName = extractProtoPackage(scheduled.packageName),
+            packageName = PackageUtils.extractProtoPackage(scheduled.packageName),
             imports = emptyList(),
             messages = emptyList(), // Don't include other messages to avoid duplication
             enums = emptyList(),
@@ -117,7 +119,7 @@ class MessageScheduler(
         )
         
         // Create generator for this specific message
-        val generator = KotlinGenerator(scheduled.packageName, typeRegistry)
+        val generator = KotlinGenerator(scheduled.packageName, typeRegistry, flatPackageStructure)
         
         // Generate using the existing generator
         val fileSpec = generator.generateSingleMessageFile(scheduled.message, contextFile)
@@ -126,12 +128,12 @@ class MessageScheduler(
     
     private fun generateEnumFile(scheduled: ScheduledEnum): String {
         // Create generator for this specific enum
-        val generator = KotlinGenerator(scheduled.packageName, typeRegistry)
+        val generator = KotlinGenerator(scheduled.packageName, typeRegistry, flatPackageStructure)
         
         // Create a simplified proto file context
         val contextFile = ProtoFile(
             fileName = scheduled.sourceFile,
-            packageName = extractProtoPackage(scheduled.packageName),
+            packageName = PackageUtils.extractProtoPackage(scheduled.packageName),
             imports = emptyList(),
             messages = emptyList(),
             enums = listOf(scheduled.enum),
@@ -142,21 +144,5 @@ class MessageScheduler(
         return fileSpec.toString()
     }
     
-    private fun combinePackageNames(basePackage: String, protoPackage: String?): String {
-        return if (protoPackage != null) {
-            "$basePackage.${protoPackage.replace(".", "_")}"
-        } else {
-            basePackage
-        }
-    }
-    
-    private fun extractProtoPackage(kotlinPackage: String): String? {
-        val parts = kotlinPackage.split(".")
-        return if (parts.size > 2) {
-            parts.drop(2).joinToString("_").replace("_", ".")
-        } else {
-            null
-        }
-    }
     
 }

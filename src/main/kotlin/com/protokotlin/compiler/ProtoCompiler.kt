@@ -5,6 +5,7 @@ import com.protokotlin.model.ProtoFile
 import com.protokotlin.parser.ProtoParser
 import com.protokotlin.resolver.TypeRegistry
 import com.protokotlin.scheduler.MessageScheduler
+import com.protokotlin.util.PackageUtils
 import java.io.File
 
 /**
@@ -12,7 +13,8 @@ import java.io.File
  */
 class ProtoCompiler(
     private val basePackageName: String,
-    private val protoSearchPaths: List<File> = listOf(File("."))
+    private val protoSearchPaths: List<File> = listOf(File(".")),
+    private val flatPackageStructure: Boolean = false
 ) {
     private val parser = ProtoParser()
     private val typeRegistry = TypeRegistry()
@@ -110,7 +112,7 @@ class ProtoCompiler(
      */
     private fun generateCode(targetFiles: List<File>): Map<String, String> {
         // Create scheduler for organized generation
-        val scheduler = MessageScheduler(basePackageName, typeRegistry)
+        val scheduler = MessageScheduler(basePackageName, typeRegistry, flatPackageStructure)
         
         // Schedule all target files for generation
         targetFiles.forEach { file ->
@@ -124,14 +126,4 @@ class ProtoCompiler(
         return scheduler.generateAll()
     }
     
-    /**
-     * Combine base package name with proto package
-     */
-    private fun combinePackageNames(basePackage: String, protoPackage: String?): String {
-        return if (protoPackage != null) {
-            "$basePackage.${protoPackage.replace(".", "_")}"
-        } else {
-            basePackage
-        }
-    }
 }
