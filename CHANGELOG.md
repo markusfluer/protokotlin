@@ -1,5 +1,28 @@
 # ProtoKotlin Changelog
 
+## v2.0.0 - Java 21 & Enhanced Type Support
+
+### 🔧 Breaking Changes
+- **Java 21 Required**: Updated from Java 24 to Java 21 for better compatibility
+- **Enhanced Type Safety**: Improved complex type generation and validation
+
+### 🛠️ Bug Fixes
+- ✅ **Fixed Map Type Parsing**: Resolved critical bug where `map<string, int32>` types were incorrectly parsed due to whitespace handling
+- ✅ **Enhanced Error Handling**: Added better error messages for invalid type resolution
+- ✅ **Improved Field Parsing**: Fixed parsing of complex types spanning multiple tokens
+
+### 📦 Compatibility
+- ✅ **Java 21 Support**: Full compatibility with Java 21 runtime
+- ✅ **Gradle Integration**: Seamless integration with modern Gradle versions
+- ✅ **Build Optimization**: Improved build performance and reliability
+
+### 🎯 Type Coverage Verified
+- ✅ **All Scalar Types**: Complete support for all Protocol Buffer scalar types
+- ✅ **Map Types**: Full support for maps with any key/value combinations
+- ✅ **Nested Structures**: Deep nesting of messages and enums
+- ✅ **Oneof Fields**: Type-safe sealed class generation
+- ✅ **Well-Known Types**: Google Protocol Buffer well-known types with proper Kotlin mappings
+
 ## v1.1.0 - Import Resolution & Oneof Support
 
 ### 🚀 Major New Features

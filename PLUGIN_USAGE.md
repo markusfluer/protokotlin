@@ -11,7 +11,7 @@ Add to your `build.gradle.kts`:
 ```kotlin
 plugins {
     kotlin("jvm")
-    id("de.markusfluer.protokotlin.plugin") version "1.1.0"
+    id("de.markusfluer.protokotlin.plugin") version "2.0.0"
 }
 
 dependencies {
