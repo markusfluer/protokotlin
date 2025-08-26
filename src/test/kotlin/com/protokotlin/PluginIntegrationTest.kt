@@ -50,8 +50,8 @@ class PluginIntegrationTest {
             task.execute()
             
             // Verify the generated file
-            val generatedFile = File(tempOutputDir, "Event.kt")
-            assertTrue(generatedFile.exists(), "Event.kt should be generated")
+            val generatedFile = File(tempOutputDir, "ProtoMessages.kt")
+            assertTrue(generatedFile.exists(), "ProtoMessages.kt should be generated")
             
             val generatedContent = generatedFile.readText()
             println("Generated content:")
@@ -108,8 +108,8 @@ class PluginIntegrationTest {
             
             task.execute()
             
-            val generatedFile = File(tempOutputDir, "ComplexEvent.kt")
-            assertTrue(generatedFile.exists(), "ComplexEvent.kt should be generated")
+            val generatedFile = File(tempOutputDir, "ProtoMessages.kt")
+            assertTrue(generatedFile.exists(), "ProtoMessages.kt should be generated")
             
             val content = generatedFile.readText()
             println("Generated ComplexEvent.kt:")
@@ -160,19 +160,13 @@ class PluginIntegrationTest {
             
             task.execute()
             
-            // Verify empty message generates as object
-            val emptyFile = File(tempOutputDir, "Empty.kt")
-            assertTrue(emptyFile.exists(), "Empty.kt should be generated")
+            // Verify messages are in ProtoMessages.kt
+            val protoMessagesFile = File(tempOutputDir, "ProtoMessages.kt")
+            assertTrue(protoMessagesFile.exists(), "ProtoMessages.kt should be generated")
             
-            val emptyContent = emptyFile.readText()
-            assertTrue(emptyContent.contains("object Empty"), "Empty message should be an object")
-            
-            // Verify regular message generates as data class
-            val withFieldFile = File(tempOutputDir, "WithField.kt")
-            assertTrue(withFieldFile.exists(), "WithField.kt should be generated")
-            
-            val withFieldContent = withFieldFile.readText()
-            assertTrue(withFieldContent.contains("data class WithField"), "WithField should be a data class")
+            val protoMessagesContent = protoMessagesFile.readText()
+            assertTrue(protoMessagesContent.contains("object Empty"), "Empty message should be an object")
+            assertTrue(protoMessagesContent.contains("data class WithField"), "WithField should be a data class")
             
         } finally {
             tempProtoDir.deleteRecursively()

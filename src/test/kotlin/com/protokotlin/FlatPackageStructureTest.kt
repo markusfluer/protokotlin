@@ -76,27 +76,23 @@ class FlatPackageStructureTest {
                 println()
             }
             
-            // Verify all files use the same package
-            val sendHeyThereRequestFile = generatedFiles["SendHeyThereRequest.kt"]
-            assertTrue(sendHeyThereRequestFile != null, "SendHeyThereRequest.kt should be generated")
+            // Verify messages are in ProtoMessages.kt
+            val protoMessagesFile = generatedFiles["ProtoMessages.kt"]
+            assertTrue(protoMessagesFile != null, "ProtoMessages.kt should be generated")
             
             // Should use flat package structure (with backticks around 'data' keyword)
-            assertTrue(sendHeyThereRequestFile!!.contains("package de.markusfluer.heythere.`data`.proto"))
+            assertTrue(protoMessagesFile!!.contains("package de.markusfluer.heythere.`data`.proto"))
             
             // Should not have nested package like "heythere_v1"
-            assertTrue(!sendHeyThereRequestFile.contains("heythere_v1"), 
+            assertTrue(!protoMessagesFile.contains("heythere_v1"), 
                 "Should not contain nested heythere_v1 package")
             
-            // Should properly reference Mood type without import issues
-            assertTrue(sendHeyThereRequestFile.contains("mood: Mood? = null"), 
+            // Should properly reference Mood type without import issues  
+            assertTrue(protoMessagesFile.contains("mood: Mood? = null"), 
                 "Should reference Mood type without nested package prefix")
             
-            // Check InboxItem reference in GetInboxResponse
-            val getInboxResponseFile = generatedFiles["GetInboxResponse.kt"]
-            assertTrue(getInboxResponseFile != null, "GetInboxResponse.kt should be generated")
-            
-            assertTrue(getInboxResponseFile!!.contains("package de.markusfluer.heythere.`data`.proto"))
-            assertTrue(getInboxResponseFile.contains("items: List<InboxItem> = emptyList()"), 
+            // Should contain InboxItem reference in GetInboxResponse
+            assertTrue(protoMessagesFile.contains("items: List<InboxItem> = emptyList()"), 
                 "Should reference InboxItem without nested package prefix")
             
         } finally {
@@ -155,11 +151,11 @@ class FlatPackageStructureTest {
             }
             
             // Verify legacy behavior creates nested packages
-            val sendHeyThereRequestFile = generatedFiles["SendHeyThereRequest.kt"]
-            assertTrue(sendHeyThereRequestFile != null, "SendHeyThereRequest.kt should be generated")
+            val protoMessagesFile = generatedFiles["ProtoMessages.kt"]
+            assertTrue(protoMessagesFile != null, "ProtoMessages.kt should be generated")
             
             // Should use nested package structure (legacy behavior)
-            assertTrue(sendHeyThereRequestFile!!.contains("heythere_v1"), 
+            assertTrue(protoMessagesFile!!.contains("heythere_v1"), 
                 "Legacy behavior should contain heythere_v1 package")
             
         } finally {

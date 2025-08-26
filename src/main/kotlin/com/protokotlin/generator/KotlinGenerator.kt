@@ -63,7 +63,7 @@ class KotlinGenerator(
         return fileBuilder.build()
     }
     
-    private fun generateDataClass(message: ProtoMessage, protoFile: ProtoFile): TypeSpec {
+    fun generateDataClass(message: ProtoMessage, protoFile: ProtoFile): TypeSpec {
         // Check if message is empty (no fields and no oneofs)
         val isEmpty = message.fields.isEmpty() && message.oneofs.isEmpty()
         
@@ -334,7 +334,7 @@ class KotlinGenerator(
         }
     }
     
-    private fun generateOneof(oneof: ProtoOneof, protoFile: ProtoFile): TypeSpec {
+    fun generateOneof(oneof: ProtoOneof, protoFile: ProtoFile): TypeSpec {
         val sealedClassName = toPascalCase(oneof.name)
         
         val sealedClassBuilder = TypeSpec.classBuilder(sealedClassName)
@@ -374,42 +374,18 @@ class KotlinGenerator(
     
     /**
      * Generate a single message file (for scheduler)
+     * One class per file - no nested types included
      */
     fun generateSingleMessageFile(message: ProtoMessage, protoFile: ProtoFile): FileSpec {
         val fileBuilder = FileSpec.builder(packageName, message.name)
         
+        // Generate only the main message class - no nested types
         val dataClass = generateDataClass(message, protoFile)
         fileBuilder.addType(dataClass)
         
-        // Collect message types referenced by oneofs to avoid duplication
-        val oneofReferencedMessages = message.oneofs.flatMap { oneof ->
-            oneof.fields.mapNotNull { field ->
-                when (field.type) {
-                    is ProtoType.Message -> field.type.name
-                    else -> null
-                }
-            }
-        }.toSet()
-        
-        // Add nested messages (but skip those referenced by oneofs - they should be separate files)
-        message.nestedMessages.forEach { nestedMessage ->
-            if (nestedMessage.name !in oneofReferencedMessages) {
-                val nestedClass = generateDataClass(nestedMessage, protoFile)
-                fileBuilder.addType(nestedClass)
-            }
-        }
-        
-        // Add nested enums (these are always included as they're typically small)
-        message.nestedEnums.forEach { nestedEnum ->
-            val enumClass = generateEnum(nestedEnum)
-            fileBuilder.addType(enumClass)
-        }
-        
-        // Add oneofs as sealed classes
-        message.oneofs.forEach { oneof ->
-            val oneofClass = generateOneof(oneof, protoFile)
-            fileBuilder.addType(oneofClass)
-        }
+        // DO NOT include nested messages - they get their own files
+        // DO NOT include nested enums - they get their own files  
+        // DO NOT include oneofs - they get their own files
         
         return fileBuilder.build()
     }

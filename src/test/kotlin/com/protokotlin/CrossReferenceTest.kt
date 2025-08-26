@@ -78,28 +78,24 @@ class CrossReferenceTest {
             println("Total generated files: ${generatedFiles.size}")
             println("Generated file names: ${generatedFiles.keys.joinToString(", ")}")
             
-            // Verify SendHeyThereRequest was generated
-            val sendHeyThereRequestFile = generatedFiles["SendHeyThereRequest.kt"]
-            assertTrue(sendHeyThereRequestFile != null, "SendHeyThereRequest.kt should be generated")
+            // Verify messages are in ProtoMessages.kt
+            val protoMessagesFile = generatedFiles["ProtoMessages.kt"]
+            assertTrue(protoMessagesFile != null, "ProtoMessages.kt should be generated")
             
             // All files should use flat package structure
-            assertTrue(sendHeyThereRequestFile!!.contains("package de.markusfluer.heythere.`data`.proto"),
+            assertTrue(protoMessagesFile!!.contains("package de.markusfluer.heythere.`data`.proto"),
                 "Should use flat package structure")
             
             // Should properly reference Mood type from common.proto
-            assertTrue(sendHeyThereRequestFile.contains("mood: Mood? = null"),
+            assertTrue(protoMessagesFile.contains("mood: Mood? = null"),
                 "Should reference Mood type correctly")
             
-            // Check GetInboxResponse references InboxItem
-            val getInboxResponseFile = generatedFiles["GetInboxResponse.kt"]
-            assertTrue(getInboxResponseFile != null, "GetInboxResponse.kt should be generated")
-            
-            assertTrue(getInboxResponseFile!!.contains("items: List<InboxItem> = emptyList()"),
+            // Should contain GetInboxResponse that references InboxItem
+            assertTrue(protoMessagesFile.contains("items: List<InboxItem> = emptyList()"),
                 "Should reference InboxItem type correctly")
             
-            // Verify all enum and message files are generated
+            // Verify enum files are generated separately
             assertTrue(generatedFiles.containsKey("Mood.kt"), "Mood.kt should be generated")
-            assertTrue(generatedFiles.containsKey("InboxItem.kt"), "InboxItem.kt should be generated")
             
             // Verify all files use the same package (no cross-package imports needed)
             val moodFile = generatedFiles["Mood.kt"]
@@ -167,11 +163,11 @@ class CrossReferenceTest {
             }
             
             // Verify the legacy behavior still generates nested package structures
-            val sendHeyThereRequestFile = generatedFiles["SendHeyThereRequest.kt"]
-            assertTrue(sendHeyThereRequestFile != null, "SendHeyThereRequest.kt should be generated")
+            val protoMessagesFile = generatedFiles["ProtoMessages.kt"]
+            assertTrue(protoMessagesFile != null, "ProtoMessages.kt should be generated")
             
             // Should use nested package structure (legacy behavior)
-            assertTrue(sendHeyThereRequestFile!!.contains("heythere_v1"),
+            assertTrue(protoMessagesFile!!.contains("heythere_v1"),
                 "Legacy behavior should contain heythere_v1 package")
             
         } finally {

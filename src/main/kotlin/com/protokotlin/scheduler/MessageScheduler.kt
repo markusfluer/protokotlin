@@ -64,20 +64,20 @@ class MessageScheduler(
     ) {
         val messageContext = if (parentContext.isNotEmpty()) "$parentContext.${message.name}" else message.name
         
-        // Schedule the main message
+        // Schedule EVERY message as a separate file (one class per file)
         messages.add(ScheduledMessage(message, packageName, sourceFile))
         
-        // Schedule oneofs within this message
+        // Schedule oneofs within this message as separate files
         message.oneofs.forEach { oneof ->
             oneofs.add(ScheduledOneof(oneof, packageName, sourceFile, messageContext))
         }
         
-        // Schedule nested messages recursively
+        // Schedule nested messages recursively as separate files
         message.nestedMessages.forEach { nestedMessage ->
             scheduleMessage(nestedMessage, packageName, sourceFile, messageContext)
         }
         
-        // Schedule nested enums
+        // Schedule nested enums as separate files (one class per file)
         message.nestedEnums.forEach { nestedEnum ->
             enums.add(ScheduledEnum(nestedEnum, packageName, sourceFile))
         }
@@ -85,26 +85,86 @@ class MessageScheduler(
     
     /**
      * Generate all scheduled types into separate files
+     * All messages go into ProtoMessages.kt, other types get individual files
      */
     fun generateAll(): Map<String, String> {
         val generatedFiles = mutableMapOf<String, String>()
         
-        // Generate each message in its own file
-        messages.forEach { scheduled ->
-            val fileName = "${scheduled.message.name}.kt"
-            val content = generateMessageFile(scheduled)
+        // Generate ALL messages in a single ProtoMessages.kt file
+        if (messages.isNotEmpty()) {
+            val content = generateAllMessagesFile()
+            generatedFiles["ProtoMessages.kt"] = content
+        }
+        
+        // Generate each enum in its own file
+        enums.forEach { scheduled ->
+            val fileName = "${scheduled.enum.name}.kt"
+            val content = generateEnumFile(scheduled)
             generatedFiles[fileName] = content
         }
         
-        // Generate each top-level enum in its own file (nested enums are included with their parent message)
-        enums.filter { it.packageName == PackageUtils.combinePackageNames(basePackageName, PackageUtils.extractProtoPackage(it.packageName), flatPackageStructure) }
-            .forEach { scheduled ->
-                val fileName = "${scheduled.enum.name}.kt"
-                val content = generateEnumFile(scheduled)
-                generatedFiles[fileName] = content
-            }
+        // Generate each oneof in its own file
+        oneofs.forEach { scheduled ->
+            val fileName = "${toPascalCase(scheduled.oneof.name)}.kt"
+            val content = generateOneofFile(scheduled)
+            generatedFiles[fileName] = content
+        }
         
         return generatedFiles
+    }
+    
+    private fun generateAllMessagesFile(): String {
+        // Use the appropriate package name based on flatPackageStructure setting
+        val packageName = if (flatPackageStructure) {
+            // All messages use the same base package  
+            basePackageName
+        } else {
+            // Use the first message's package (they should all be the same in this case)
+            messages.firstOrNull()?.packageName ?: basePackageName
+        }
+        
+        // Create a generator for all messages
+        val generator = KotlinGenerator(packageName, typeRegistry, flatPackageStructure)
+        
+        // Create a file that contains all messages
+        val fileBuilder = com.squareup.kotlinpoet.FileSpec.builder(packageName, "ProtoMessages")
+        
+        // Add all messages to the single file
+        messages.forEach { scheduled ->
+            val contextFile = ProtoFile(
+                fileName = scheduled.sourceFile,
+                packageName = PackageUtils.extractProtoPackage(scheduled.packageName),
+                imports = emptyList(),
+                messages = emptyList(),
+                enums = emptyList(),
+                services = emptyList()
+            )
+            
+            // Generate only the message class (no nested types)
+            val messageClass = generator.generateDataClass(scheduled.message, contextFile)
+            fileBuilder.addType(messageClass)
+        }
+        
+        return fileBuilder.build().toString()
+    }
+    
+    private fun generateOneofFile(scheduled: ScheduledOneof): String {
+        val generator = KotlinGenerator(scheduled.packageName, typeRegistry, flatPackageStructure)
+        
+        val contextFile = ProtoFile(
+            fileName = scheduled.sourceFile,
+            packageName = PackageUtils.extractProtoPackage(scheduled.packageName),
+            imports = emptyList(),
+            messages = emptyList(),
+            enums = emptyList(),
+            services = emptyList()
+        )
+        
+        val fileBuilder = com.squareup.kotlinpoet.FileSpec.builder(scheduled.packageName, toPascalCase(scheduled.oneof.name))
+        val oneofClass = generator.generateOneof(scheduled.oneof, contextFile)
+        fileBuilder.addType(oneofClass)
+        
+        return fileBuilder.build().toString()
     }
     
     private fun generateMessageFile(scheduled: ScheduledMessage): String {
@@ -144,5 +204,10 @@ class MessageScheduler(
         return fileSpec.toString()
     }
     
+    private fun toPascalCase(snakeCase: String): String {
+        return snakeCase.split("_").joinToString("") { part ->
+            part.replaceFirstChar { it.uppercase() }
+        }
+    }
     
 }

@@ -1,5 +1,34 @@
 # ProtoKotlin Changelog
 
+## v2.1.1 - Organized File Structure & Duplicate Prevention
+
+### 🗂️ Major File Structure Improvement
+- ✅ **All Messages in ProtoMessages.kt**: No more duplicate message definitions across files
+- ✅ **Enums in Separate Files**: Each enum gets its own `.kt` file (e.g., `Status.kt`, `Mood.kt`)
+- ✅ **Oneofs in Separate Files**: Each oneof sealed class gets its own `.kt` file
+- ✅ **Clean Organization**: Prevents code duplication and improves maintainability
+
+### 🛠️ Technical Improvements
+- ✅ **Fixed MessageScheduler**: Eliminated duplicate type generation across multiple files
+- ✅ **Enhanced Generator Methods**: Made `generateDataClass` and `generateOneof` public for better reuse
+- ✅ **Centralized Message Generation**: `generateAllMessagesFile` method creates single consolidated file
+- ✅ **Updated Test Suite**: All tests updated to expect new file structure
+
+### 📁 New File Structure
+```
+Generated Output:
+├── ProtoMessages.kt    # All message data classes
+├── Status.kt          # Individual enum files
+├── Mood.kt           # Individual enum files
+└── MyOneof.kt        # Individual oneof sealed classes
+```
+
+### 🎯 Benefits
+- **No Duplicates**: Each type defined exactly once
+- **Better Organization**: Logical separation of messages, enums, and oneofs
+- **Easier Navigation**: Find all messages in one place, enums in dedicated files
+- **Improved Maintainability**: Clean, predictable file structure
+
 ## v2.1.0 - Flat Package Structure & Cross-File References
 
 ### 🚀 Major New Features

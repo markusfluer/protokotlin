@@ -72,40 +72,32 @@ class PluginFlatPackageTest {
             task.execute()
             
             // Verify the generated files
-            val sendHeyThereFile = File(tempOutputDir, "SendHeyThereRequest.kt")
-            assertTrue(sendHeyThereFile.exists(), "SendHeyThereRequest.kt should be generated")
+            val protoMessagesFile = File(tempOutputDir, "ProtoMessages.kt")
+            assertTrue(protoMessagesFile.exists(), "ProtoMessages.kt should be generated")
             
-            val sendHeyThereContent = sendHeyThereFile.readText()
-            println("Generated SendHeyThereRequest.kt:")
-            println(sendHeyThereContent)
+            val protoMessagesContent = protoMessagesFile.readText()
+            println("Generated ProtoMessages.kt:")
+            println(protoMessagesContent)
             
             // Verify flat package structure
-            assertTrue(sendHeyThereContent.contains("package de.markusfluer.heythere.`data`.proto"), 
+            assertTrue(protoMessagesContent.contains("package de.markusfluer.heythere.`data`.proto"), 
                 "Should use flat package structure")
             
             // Should not contain nested package like heythere_v1
-            assertTrue(!sendHeyThereContent.contains("heythere_v1"), 
+            assertTrue(!protoMessagesContent.contains("heythere_v1"), 
                 "Should not contain nested heythere_v1 package")
             
             // Should reference Mood without import (same package)
-            assertTrue(sendHeyThereContent.contains("mood: Mood? = null"), 
+            assertTrue(protoMessagesContent.contains("mood: Mood? = null"), 
                 "Should reference Mood type without nested package")
             
-            // Check GetInboxResponse
-            val getInboxFile = File(tempOutputDir, "GetInboxResponse.kt")
-            assertTrue(getInboxFile.exists(), "GetInboxResponse.kt should be generated")
-            
-            val getInboxContent = getInboxFile.readText()
-            println("Generated GetInboxResponse.kt:")
-            println(getInboxContent)
-            
-            // Should reference InboxItem without import (same package)
-            assertTrue(getInboxContent.contains("items: List<InboxItem> = emptyList()"), 
+            // Should contain GetInboxResponse with InboxItem reference
+            assertTrue(protoMessagesContent.contains("items: List<InboxItem> = emptyList()"), 
                 "Should reference InboxItem type without nested package")
-            
-            // Verify all files use same package
-            assertTrue(getInboxContent.contains("package de.markusfluer.heythere.`data`.proto"), 
-                "Should use same flat package structure")
+                
+            // Check that enum files are generated separately
+            val moodFile = File(tempOutputDir, "Mood.kt")
+            assertTrue(moodFile.exists(), "Mood.kt should be generated")
             
         } finally {
             // Cleanup

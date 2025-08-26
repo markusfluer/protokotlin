@@ -61,9 +61,10 @@ message Person {
 ./gradlew run --args="--dir proto_files/ -o src/main/kotlin -p com.example"
 ```
 
-Will generate `Person.kt`:
+Will generate `ProtoMessages.kt` containing all messages, plus separate files for enums:
 
 ```kotlin
+// ProtoMessages.kt
 package com.example
 
 import kotlinx.serialization.Serializable
@@ -80,6 +81,11 @@ data class Person(
 )
 ```
 
+**File Structure:**
+- All **messages** → `ProtoMessages.kt`
+- Each **enum** → Individual `.kt` files (e.g., `Status.kt`)
+- Each **oneof** → Individual `.kt` files
+
 ## Building
 
 ```bash
@@ -94,11 +100,12 @@ data class Person(
 
 ## Project Status
 
-✅ **Production Ready** - v2.1.0 Complete
+✅ **Production Ready** - v2.1.1 Complete
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed feature list and [DEVELOPMENT.md](DEVELOPMENT.md) for technical documentation.
 
-### Latest Features (v2.1.0)
+### Latest Features (v2.1.1)
+- 🗂️ **Organized File Structure**: All messages in `ProtoMessages.kt`, enums and oneofs in separate files
 - 📦 **Flat Package Structure**: New `flatPackageStructure` option prevents nested package issues
 - 🔗 **Cross-File Type References**: Types from different proto files now properly resolve
 - 🏗️ **Package Consistency**: Standardized package structure across all generated files
@@ -114,7 +121,7 @@ ProtoKotlin is now available as a Gradle plugin! See [PLUGIN_USAGE.md](PLUGIN_US
 ```kotlin
 plugins {
     kotlin("jvm")
-    id("de.markusfluer.protokotlin.plugin") version "2.1.0"
+    id("de.markusfluer.protokotlin.plugin") version "2.1.1"
 }
 
 dependencies {

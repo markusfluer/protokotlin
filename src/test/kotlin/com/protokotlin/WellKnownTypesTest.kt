@@ -234,9 +234,9 @@ class WellKnownTypesTest {
             val generatedFiles = compiler.compile(listOf(tempFile.toFile()))
             
             assertNotNull(generatedFiles)
-            assertTrue(generatedFiles.containsKey("User.kt"))
+            assertTrue(generatedFiles.containsKey("ProtoMessages.kt"))
             
-            val userClass = generatedFiles["User.kt"]!!
+            val userClass = generatedFiles["ProtoMessages.kt"]!!
             println("Generated User.kt via ProtoCompiler:")
             println(userClass)
             
