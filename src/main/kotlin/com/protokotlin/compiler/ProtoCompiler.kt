@@ -4,6 +4,7 @@ import com.protokotlin.generator.KotlinGenerator
 import com.protokotlin.model.ProtoFile
 import com.protokotlin.parser.ProtoParser
 import com.protokotlin.resolver.TypeRegistry
+import com.protokotlin.scheduler.MessageScheduler
 import java.io.File
 
 /**
@@ -105,25 +106,22 @@ class ProtoCompiler(
     }
     
     /**
-     * Generate code for the specified files (not imports)
+     * Generate code for the specified files (not imports) using scheduler
      */
     private fun generateCode(targetFiles: List<File>): Map<String, String> {
-        val allGeneratedFiles = mutableMapOf<String, String>()
+        // Create scheduler for organized generation
+        val scheduler = MessageScheduler(basePackageName, typeRegistry)
         
+        // Schedule all target files for generation
         targetFiles.forEach { file ->
             val protoFile = parsedFiles[file.path]
             if (protoFile != null) {
-                val generator = KotlinGenerator(
-                    packageName = combinePackageNames(basePackageName, protoFile.packageName),
-                    typeRegistry = typeRegistry
-                )
-                
-                val generatedFiles = generator.generate(protoFile)
-                allGeneratedFiles.putAll(generatedFiles)
+                scheduler.scheduleFile(protoFile)
             }
         }
         
-        return allGeneratedFiles
+        // Generate all scheduled types
+        return scheduler.generateAll()
     }
     
     /**

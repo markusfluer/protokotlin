@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package test;
+
+message TestMessage {
+  string id = 1;
+  oneof content {
+    string text = 2;
+    int32 number = 3;
+  }
+  bool active = 4;
+}
+
+message AnotherMessage {
+  string name = 1;
+}

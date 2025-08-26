@@ -77,6 +77,7 @@ class ProtoParser {
             .trim()
         
         val fields = mutableListOf<ProtoField>()
+        val oneofs = mutableListOf<ProtoOneof>()
         val nestedMessages = mutableListOf<ProtoMessage>()
         val nestedEnums = mutableListOf<ProtoEnum>()
         
@@ -111,6 +112,11 @@ class ProtoParser {
                         nestedEnums.add(nestedEnum)
                         currentIndex = nextIndex - 1
                     }
+                    line.startsWith("oneof ") -> {
+                        val (oneof, nextIndex) = parseOneof(lines, currentIndex)
+                        oneofs.add(oneof)
+                        currentIndex = nextIndex - 1
+                    }
                     line.matches(Regex("^(optional |required |repeated )?.*=.*")) -> {
                         parseField(line)?.let { fields.add(it) }
                     }
@@ -122,6 +128,7 @@ class ProtoParser {
         return ProtoMessage(
             name = messageName,
             fields = fields,
+            oneofs = oneofs,
             nestedMessages = nestedMessages,
             nestedEnums = nestedEnums
         ) to currentIndex
@@ -275,5 +282,43 @@ class ProtoParser {
         }
         
         return ProtoService(serviceName, methods) to currentIndex
+    }
+    
+    private fun parseOneof(lines: List<String>, startIndex: Int): Pair<ProtoOneof, Int> {
+        val firstLine = lines[startIndex].trim()
+        val oneofName = firstLine.substringAfter("oneof ")
+            .substringBefore("{")
+            .trim()
+        
+        val fields = mutableListOf<ProtoField>()
+        var currentIndex = startIndex + 1
+        var braceCount = 1
+        
+        while (currentIndex < lines.size && braceCount > 0) {
+            val line = lines[currentIndex].trim()
+            
+            // Handle braces first - a line can have both opening and closing braces
+            if (line.contains("{")) {
+                braceCount += line.count { it == '{' }
+            }
+            if (line.contains("}")) {
+                braceCount -= line.count { it == '}' }
+                if (braceCount == 0) {
+                    currentIndex++
+                    break
+                }
+            }
+            
+            // Only process content if we're still inside this oneof
+            if (braceCount > 0) {
+                // Only parse field lines in oneof (no nested messages/enums)
+                if (line.matches(Regex("^.*=.*"))) {
+                    parseField(line)?.let { fields.add(it) }
+                }
+            }
+            currentIndex++
+        }
+        
+        return ProtoOneof(oneofName, fields) to currentIndex
     }
 }

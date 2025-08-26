@@ -12,6 +12,7 @@ data class ProtoFile(
 data class ProtoMessage(
     val name: String,
     val fields: List<ProtoField>,
+    val oneofs: List<ProtoOneof>,
     val nestedMessages: List<ProtoMessage>,
     val nestedEnums: List<ProtoEnum>
 )
@@ -22,6 +23,11 @@ data class ProtoField(
     val number: Int,
     val label: FieldLabel = FieldLabel.OPTIONAL,
     val defaultValue: String? = null
+)
+
+data class ProtoOneof(
+    val name: String,
+    val fields: List<ProtoField>
 )
 
 sealed class ProtoType {

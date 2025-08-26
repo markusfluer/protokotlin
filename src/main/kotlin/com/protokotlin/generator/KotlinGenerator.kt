@@ -46,6 +46,11 @@ class KotlinGenerator(
             fileBuilder.addType(enumClass)
         }
         
+        message.oneofs.forEach { oneof ->
+            val oneofClass = generateOneof(oneof, protoFile)
+            fileBuilder.addType(oneofClass)
+        }
+        
         return fileBuilder.build()
     }
     
@@ -90,6 +95,22 @@ class KotlinGenerator(
             if (field.label == FieldLabel.REPEATED) {
                 propertyBuilder.addAnnotation(protoPackedAnnotation)
             }
+            
+            classBuilder.addProperty(propertyBuilder.build())
+        }
+        
+        // Add oneof fields as properties
+        message.oneofs.forEach { oneof ->
+            val propertyName = toCamelCase(oneof.name)
+            val oneofTypeName = ClassName(packageName, toPascalCase(oneof.name))
+            
+            val parameterBuilder = ParameterSpec.builder(propertyName, oneofTypeName.copy(nullable = true))
+                .defaultValue("null")
+            
+            constructorBuilder.addParameter(parameterBuilder.build())
+            
+            val propertyBuilder = PropertySpec.builder(propertyName, oneofTypeName.copy(nullable = true))
+                .initializer(propertyName)
             
             classBuilder.addProperty(propertyBuilder.build())
         }
@@ -150,6 +171,12 @@ class KotlinGenerator(
         return snakeCase.split("_").mapIndexed { index, part ->
             if (index == 0) part else part.replaceFirstChar { it.uppercase() }
         }.joinToString("")
+    }
+    
+    private fun toPascalCase(snakeCase: String): String {
+        return snakeCase.split("_").joinToString("") { part ->
+            part.replaceFirstChar { it.uppercase() }
+        }
     }
     
     private fun resolveMessageType(typeName: String, protoFile: ProtoFile?): TypeName {
@@ -275,5 +302,95 @@ class KotlinGenerator(
             "kotlin.time.Duration" -> ClassName("kotlin.time", "Duration")
             else -> null
         }
+    }
+    
+    private fun generateOneof(oneof: ProtoOneof, protoFile: ProtoFile): TypeSpec {
+        val sealedClassName = toPascalCase(oneof.name)
+        
+        val sealedClassBuilder = TypeSpec.classBuilder(sealedClassName)
+            .addModifiers(KModifier.SEALED)
+            .addAnnotation(protoBufSerializableAnnotation)
+        
+        // Add nested data classes for each oneof option
+        oneof.fields.forEach { field ->
+            val optionClassName = toPascalCase(field.name)
+            val fieldType = mapProtoTypeToKotlin(field.type, FieldLabel.OPTIONAL, protoFile)
+            
+            val optionClass = TypeSpec.classBuilder(optionClassName)
+                .addModifiers(KModifier.DATA)
+                .superclass(ClassName(packageName, sealedClassName))
+                .primaryConstructor(
+                    FunSpec.constructorBuilder()
+                        .addParameter("value", fieldType)
+                        .build()
+                )
+                .addProperty(
+                    PropertySpec.builder("value", fieldType)
+                        .initializer("value")
+                        .addAnnotation(
+                            AnnotationSpec.builder(protoNumberAnnotation)
+                                .addMember("${field.number}")
+                                .build()
+                        )
+                        .build()
+                )
+                .build()
+            
+            sealedClassBuilder.addType(optionClass)
+        }
+        
+        return sealedClassBuilder.build()
+    }
+    
+    /**
+     * Generate a single message file (for scheduler)
+     */
+    fun generateSingleMessageFile(message: ProtoMessage, protoFile: ProtoFile): FileSpec {
+        val fileBuilder = FileSpec.builder(packageName, message.name)
+        
+        val dataClass = generateDataClass(message, protoFile)
+        fileBuilder.addType(dataClass)
+        
+        // Collect message types referenced by oneofs to avoid duplication
+        val oneofReferencedMessages = message.oneofs.flatMap { oneof ->
+            oneof.fields.mapNotNull { field ->
+                when (field.type) {
+                    is ProtoType.Message -> field.type.name
+                    else -> null
+                }
+            }
+        }.toSet()
+        
+        // Add nested messages (but skip those referenced by oneofs - they should be separate files)
+        message.nestedMessages.forEach { nestedMessage ->
+            if (nestedMessage.name !in oneofReferencedMessages) {
+                val nestedClass = generateDataClass(nestedMessage, protoFile)
+                fileBuilder.addType(nestedClass)
+            }
+        }
+        
+        // Add nested enums (these are always included as they're typically small)
+        message.nestedEnums.forEach { nestedEnum ->
+            val enumClass = generateEnum(nestedEnum)
+            fileBuilder.addType(enumClass)
+        }
+        
+        // Add oneofs as sealed classes
+        message.oneofs.forEach { oneof ->
+            val oneofClass = generateOneof(oneof, protoFile)
+            fileBuilder.addType(oneofClass)
+        }
+        
+        return fileBuilder.build()
+    }
+    
+    /**
+     * Generate a single enum file (for scheduler)
+     */
+    fun generateSingleEnumFile(enum: ProtoEnum, protoFile: ProtoFile): FileSpec {
+        val fileBuilder = FileSpec.builder(packageName, enum.name)
+        val enumClass = generateEnum(enum)
+        fileBuilder.addType(enumClass)
+        return fileBuilder.build()
     }
 }
