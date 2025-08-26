@@ -1,10 +1,14 @@
 package com.protokotlin.generator
 
 import com.protokotlin.model.*
+import com.protokotlin.resolver.TypeRegistry
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 
-class KotlinGenerator(private val packageName: String) {
+class KotlinGenerator(
+    private val packageName: String,
+    private val typeRegistry: TypeRegistry? = null
+) {
     
     private val protoBufSerializableAnnotation = ClassName("kotlinx.serialization", "Serializable")
     private val protoNumberAnnotation = ClassName("kotlinx.serialization.protobuf", "ProtoNumber")
@@ -14,26 +18,26 @@ class KotlinGenerator(private val packageName: String) {
         val files = mutableMapOf<String, String>()
         
         protoFile.messages.forEach { message ->
-            val fileSpec = generateMessageFile(message)
+            val fileSpec = generateMessageFile(message, protoFile)
             files["${message.name}.kt"] = fileSpec.toString()
         }
         
         protoFile.enums.forEach { enum ->
-            val fileSpec = generateEnumFile(enum)
+            val fileSpec = generateEnumFile(enum, protoFile)
             files["${enum.name}.kt"] = fileSpec.toString()
         }
         
         return files
     }
     
-    private fun generateMessageFile(message: ProtoMessage): FileSpec {
+    private fun generateMessageFile(message: ProtoMessage, protoFile: ProtoFile): FileSpec {
         val fileBuilder = FileSpec.builder(packageName, message.name)
         
-        val dataClass = generateDataClass(message)
+        val dataClass = generateDataClass(message, protoFile)
         fileBuilder.addType(dataClass)
         
         message.nestedMessages.forEach { nestedMessage ->
-            val nestedClass = generateDataClass(nestedMessage)
+            val nestedClass = generateDataClass(nestedMessage, protoFile)
             fileBuilder.addType(nestedClass)
         }
         
@@ -45,14 +49,14 @@ class KotlinGenerator(private val packageName: String) {
         return fileBuilder.build()
     }
     
-    private fun generateEnumFile(enum: ProtoEnum): FileSpec {
+    private fun generateEnumFile(enum: ProtoEnum, protoFile: ProtoFile): FileSpec {
         val fileBuilder = FileSpec.builder(packageName, enum.name)
         val enumClass = generateEnum(enum)
         fileBuilder.addType(enumClass)
         return fileBuilder.build()
     }
     
-    private fun generateDataClass(message: ProtoMessage): TypeSpec {
+    private fun generateDataClass(message: ProtoMessage, protoFile: ProtoFile): TypeSpec {
         val classBuilder = TypeSpec.classBuilder(message.name)
             .addModifiers(KModifier.DATA)
             .addAnnotation(protoBufSerializableAnnotation)
@@ -60,7 +64,7 @@ class KotlinGenerator(private val packageName: String) {
         val constructorBuilder = FunSpec.constructorBuilder()
         
         message.fields.forEach { field ->
-            val propertyType = mapProtoTypeToKotlin(field.type, field.label)
+            val propertyType = mapProtoTypeToKotlin(field.type, field.label, protoFile)
             val propertyName = toCamelCase(field.name)
             
             val parameterBuilder = ParameterSpec.builder(propertyName, propertyType)
@@ -106,14 +110,14 @@ class KotlinGenerator(private val packageName: String) {
         return enumBuilder.build()
     }
     
-    private fun mapProtoTypeToKotlin(type: ProtoType, label: FieldLabel): TypeName {
+    private fun mapProtoTypeToKotlin(type: ProtoType, label: FieldLabel, currentFile: ProtoFile? = null): TypeName {
         val baseType = when (type) {
             is ProtoType.Scalar -> mapScalarType(type.type)
-            is ProtoType.Message -> ClassName(packageName, type.name)
-            is ProtoType.Enum -> ClassName(packageName, type.name)
+            is ProtoType.Message -> resolveMessageType(type.name, currentFile)
+            is ProtoType.Enum -> resolveEnumType(type.name, currentFile) 
             is ProtoType.Map -> {
                 val keyType = mapScalarType(type.keyType)
-                val valueType = mapProtoTypeToKotlin(type.valueType, FieldLabel.OPTIONAL)
+                val valueType = mapProtoTypeToKotlin(type.valueType, FieldLabel.OPTIONAL, currentFile)
                 MAP.parameterizedBy(keyType, valueType)
             }
         }
@@ -146,5 +150,130 @@ class KotlinGenerator(private val packageName: String) {
         return snakeCase.split("_").mapIndexed { index, part ->
             if (index == 0) part else part.replaceFirstChar { it.uppercase() }
         }.joinToString("")
+    }
+    
+    private fun resolveMessageType(typeName: String, protoFile: ProtoFile?): TypeName {
+        // If we have a type registry, try to resolve the type
+        if (typeRegistry != null && protoFile != null) {
+            val resolvedType = typeRegistry.resolveType(typeName, protoFile.fileName, protoFile.packageName)
+            if (resolvedType != null) {
+                when (resolvedType) {
+                    is TypeRegistry.ResolvedType.Message -> {
+                        val kotlinPackage = typeRegistry.getKotlinPackage(resolvedType)
+                        val className = typeRegistry.getKotlinClassName(resolvedType)
+                        return if (kotlinPackage != null && kotlinPackage != packageName) {
+                            // Type from different package/file
+                            ClassName(combinePackageNames(packageName.substringBeforeLast(".${protoFile.packageName?.replace(".", "_") ?: ""}"), kotlinPackage), className)
+                        } else {
+                            ClassName(packageName, className)
+                        }
+                    }
+                    is TypeRegistry.ResolvedType.Scalar -> {
+                        // Handle well-known types mapped to scalars or special types
+                        val scalarType = parseScalarType(resolvedType.name)
+                        return if (scalarType != null) {
+                            mapScalarType(scalarType)
+                        } else {
+                            // Handle special well-known types
+                            mapWellKnownTypeToKotlin(resolvedType.name) ?: ClassName(packageName, typeName)
+                        }
+                    }
+                    is TypeRegistry.ResolvedType.Enum -> {
+                        // Handle if message type was actually an enum
+                        val kotlinPackage = typeRegistry.getKotlinPackage(resolvedType)
+                        val className = typeRegistry.getKotlinClassName(resolvedType)
+                        return if (kotlinPackage != null && kotlinPackage != packageName) {
+                            ClassName(combinePackageNames(packageName.substringBeforeLast(".${protoFile.packageName?.replace(".", "_") ?: ""}"), kotlinPackage), className)
+                        } else {
+                            ClassName(packageName, className)
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Fallback to local resolution
+        return ClassName(packageName, typeName)
+    }
+    
+    private fun resolveEnumType(typeName: String, protoFile: ProtoFile?): TypeName {
+        // If we have a type registry, try to resolve the type
+        if (typeRegistry != null && protoFile != null) {
+            val resolvedType = typeRegistry.resolveType(typeName, protoFile.fileName, protoFile.packageName)
+            if (resolvedType != null) {
+                when (resolvedType) {
+                    is TypeRegistry.ResolvedType.Enum -> {
+                        val kotlinPackage = typeRegistry.getKotlinPackage(resolvedType)
+                        val className = typeRegistry.getKotlinClassName(resolvedType)
+                        return if (kotlinPackage != null && kotlinPackage != packageName) {
+                            // Type from different package/file
+                            ClassName(combinePackageNames(packageName.substringBeforeLast(".${protoFile.packageName?.replace(".", "_") ?: ""}"), kotlinPackage), className)
+                        } else {
+                            ClassName(packageName, className)
+                        }
+                    }
+                    is TypeRegistry.ResolvedType.Scalar -> {
+                        // Handle well-known types mapped to scalars or special types
+                        val scalarType = parseScalarType(resolvedType.name)
+                        return if (scalarType != null) {
+                            mapScalarType(scalarType)
+                        } else {
+                            // Handle special well-known types
+                            mapWellKnownTypeToKotlin(resolvedType.name) ?: ClassName(packageName, typeName)
+                        }
+                    }
+                    is TypeRegistry.ResolvedType.Message -> {
+                        // Handle if enum type was actually a message
+                        val kotlinPackage = typeRegistry.getKotlinPackage(resolvedType)
+                        val className = typeRegistry.getKotlinClassName(resolvedType)
+                        return if (kotlinPackage != null && kotlinPackage != packageName) {
+                            ClassName(combinePackageNames(packageName.substringBeforeLast(".${protoFile.packageName?.replace(".", "_") ?: ""}"), kotlinPackage), className)
+                        } else {
+                            ClassName(packageName, className)
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Fallback to local resolution
+        return ClassName(packageName, typeName)
+    }
+    
+    private fun combinePackageNames(basePackage: String, protoPackage: String?): String {
+        return if (protoPackage != null) {
+            "$basePackage.${protoPackage.replace(".", "_")}"
+        } else {
+            basePackage
+        }
+    }
+    
+    private fun parseScalarType(type: String): ScalarType? {
+        return when (type) {
+            "double" -> ScalarType.DOUBLE
+            "float" -> ScalarType.FLOAT
+            "int32" -> ScalarType.INT32
+            "int64" -> ScalarType.INT64
+            "uint32" -> ScalarType.UINT32
+            "uint64" -> ScalarType.UINT64
+            "sint32" -> ScalarType.SINT32
+            "sint64" -> ScalarType.SINT64
+            "fixed32" -> ScalarType.FIXED32
+            "fixed64" -> ScalarType.FIXED64
+            "sfixed32" -> ScalarType.SFIXED32
+            "sfixed64" -> ScalarType.SFIXED64
+            "bool" -> ScalarType.BOOL
+            "string" -> ScalarType.STRING
+            "bytes" -> ScalarType.BYTES
+            else -> null
+        }
+    }
+    
+    private fun mapWellKnownTypeToKotlin(typeName: String): TypeName? {
+        return when (typeName) {
+            "kotlinx.datetime.Instant" -> ClassName("kotlinx.datetime", "Instant")
+            "kotlin.time.Duration" -> ClassName("kotlin.time", "Duration")
+            else -> null
+        }
     }
 }

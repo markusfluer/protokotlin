@@ -4,8 +4,10 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.optional
 import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.file
+import com.protokotlin.compiler.ProtoCompiler
 import com.protokotlin.generator.KotlinGenerator
 import com.protokotlin.parser.ProtoParser
 import java.io.File
@@ -23,6 +25,11 @@ class ProtoKotlinCli : CliktCommand(
         "--dir", "-d",
         help = "Directory containing .proto files to process"
     ).file(mustExist = true, canBeDir = true)
+    
+    private val protoPath by option(
+        "--proto-path", "-I",
+        help = "Add a directory to the proto import path (can be used multiple times)"
+    ).file(mustExist = true, canBeDir = true).multiple()
     
     private val outputDir by option(
         "-o", "--output",
@@ -60,29 +67,38 @@ class ProtoKotlinCli : CliktCommand(
             
             echo("Processing ${protoFiles.size} file(s)...")
             
-            val parser = ProtoParser()
-            val generator = KotlinGenerator(packageName)
-            var totalGeneratedFiles = 0
+            // Setup proto search paths
+            val searchPaths = mutableListOf<File>()
+            
+            // Add explicit proto paths
+            searchPaths.addAll(protoPath)
+            
+            // Add directory of input files as search path
+            if (inputFile != null) {
+                inputFile!!.parentFile?.let { searchPaths.add(it) }
+            }
+            if (inputDir != null) {
+                searchPaths.add(inputDir!!)
+            }
+            
+            // Add current directory as fallback
+            searchPaths.add(File("."))
+            
+            // Use the new ProtoCompiler for multi-file support
+            val compiler = ProtoCompiler(packageName, searchPaths)
+            val generatedFiles = compiler.compile(protoFiles)
             
             if (!outputDir.exists()) {
                 outputDir.mkdirs()
             }
             
-            protoFiles.forEach { protoFile ->
-                echo("Processing ${protoFile.name}...")
-                
-                val protoContent = protoFile.readText()
-                val parsedProto = parser.parse(protoContent, protoFile.name)
-                val generatedFiles = generator.generate(parsedProto)
-                
-                generatedFiles.forEach { (fileName, content) ->
-                    val outputFile = File(outputDir, fileName)
-                    outputFile.parentFile?.mkdirs()
-                    outputFile.writeText(content)
-                    echo("Generated: ${outputFile.path}")
-                }
-                
-                totalGeneratedFiles += generatedFiles.size
+            var totalGeneratedFiles = 0
+            generatedFiles.forEach { (fileName, content) ->
+                val outputFile = File(outputDir, fileName)
+                outputFile.parentFile?.mkdirs()
+                outputFile.writeText(content)
+                echo("Generated: ${outputFile.path}")
+                totalGeneratedFiles++
             }
             
             echo("✓ Successfully generated $totalGeneratedFiles file(s) from ${protoFiles.size} .proto file(s)")

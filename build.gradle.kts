@@ -16,12 +16,13 @@ repositories {
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
+        languageVersion.set(JavaLanguageVersion.of(24))
     }
 }
 
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-protobuf:1.6.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
     implementation("com.github.ajalt.clikt:clikt:4.2.2")
     implementation("com.squareup:kotlinpoet:1.15.3")
     implementation(gradleApi())
@@ -36,7 +37,7 @@ tasks.test {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(24)
 }
 
 application {

@@ -86,27 +86,34 @@ class ProtoParser {
         while (currentIndex < lines.size && braceCount > 0) {
             val line = lines[currentIndex].trim()
             
-            when {
-                line.contains("{") -> braceCount += line.count { it == '{' }
-                line.contains("}") -> {
-                    braceCount -= line.count { it == '}' }
-                    if (braceCount == 0) {
-                        currentIndex++
-                        break
+            // Handle braces first - a line can have both opening and closing braces
+            if (line.contains("{")) {
+                braceCount += line.count { it == '{' }
+            }
+            if (line.contains("}")) {
+                braceCount -= line.count { it == '}' }
+                if (braceCount == 0) {
+                    currentIndex++
+                    break
+                }
+            }
+            
+            // Only process content if we're still inside this message
+            if (braceCount > 0) {
+                when {
+                    line.startsWith("message ") -> {
+                        val (nestedMessage, nextIndex) = parseMessage(lines, currentIndex)
+                        nestedMessages.add(nestedMessage)
+                        currentIndex = nextIndex - 1
                     }
-                }
-                line.startsWith("message ") -> {
-                    val (nestedMessage, nextIndex) = parseMessage(lines, currentIndex)
-                    nestedMessages.add(nestedMessage)
-                    currentIndex = nextIndex - 1
-                }
-                line.startsWith("enum ") -> {
-                    val (nestedEnum, nextIndex) = parseEnum(lines, currentIndex)
-                    nestedEnums.add(nestedEnum)
-                    currentIndex = nextIndex - 1
-                }
-                line.matches(Regex("^(optional |required |repeated )?.*=.*")) -> {
-                    parseField(line)?.let { fields.add(it) }
+                    line.startsWith("enum ") -> {
+                        val (nestedEnum, nextIndex) = parseEnum(lines, currentIndex)
+                        nestedEnums.add(nestedEnum)
+                        currentIndex = nextIndex - 1
+                    }
+                    line.matches(Regex("^(optional |required |repeated )?.*=.*")) -> {
+                        parseField(line)?.let { fields.add(it) }
+                    }
                 }
             }
             currentIndex++
