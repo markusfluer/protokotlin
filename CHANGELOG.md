@@ -1,5 +1,16 @@
 # ProtoKotlin Changelog
 
+## v2.0.1 - Empty Message Fix
+
+### 🛠️ Bug Fixes
+- ✅ **Fixed Empty Class Generation**: Empty proto messages now generate as `@Serializable object` instead of invalid `data class()` syntax
+- ✅ **Improved Code Validity**: All generated Kotlin code is now syntactically correct and compiles successfully
+
+### 📝 Code Generation Updates
+- **Empty Messages**: `message Empty {}` → `@Serializable public object Empty`
+- **Regular Messages**: `message User { string name = 1; }` → `@Serializable public data class User(...)`
+- **Oneof Messages**: Messages with oneofs continue to generate as data classes with proper constructor parameters
+
 ## v2.0.0 - Java 21 & Enhanced Type Support
 
 ### 🔧 Breaking Changes
