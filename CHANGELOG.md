@@ -1,5 +1,40 @@
 # ProtoKotlin Changelog
 
+## v1.1.0 - Import Resolution & Oneof Support
+
+### 🚀 Major New Features
+- ✅ **Import Resolution**: Full support for multi-file proto projects with cross-file type references
+- ✅ **Oneof Fields**: Complete oneof support generating type-safe sealed classes
+- ✅ **Google Well-Known Types**: Support for `google.protobuf.Timestamp` → `kotlinx.datetime.Instant`, `google.protobuf.Duration` → `kotlin.time.Duration`
+- ✅ **Message Scheduler**: Intelligent file generation - each message gets its own `.kt` file
+- ✅ **Enhanced CLI**: Added `--proto-path`/`-I` option for import directories
+
+### 🏗️ Architecture Improvements  
+- ✅ **TypeRegistry**: Cross-file type resolution system
+- ✅ **ProtoCompiler**: Multi-pass parsing with dependency resolution
+- ✅ **MessageScheduler**: Organized code generation preventing duplication
+- ✅ **Import Path Support**: Configurable proto search paths
+
+### 🎯 Oneof Implementation
+- ✅ **Sealed Classes**: Type-safe oneof representation using Kotlin sealed classes
+- ✅ **Proper Field Numbers**: Maintains proto field numbering in sealed class options
+- ✅ **Cross-Type References**: Oneof options can reference other message types
+- ✅ **Clean Generation**: No duplicate message definitions
+
+### 📦 Dependencies Added
+- ✅ **kotlinx-datetime**: For proper timestamp handling
+- ✅ **Enhanced Type Mapping**: Well-known proto types map to appropriate Kotlin types
+
+### 🛠️ Bug Fixes
+- ✅ **Fixed Message Field Parsing**: Resolved brace counting issues in proto parser
+- ✅ **Import Resolution**: Types from imported files now properly resolved
+- ✅ **File Organization**: Each message generated in separate file instead of lumped together
+
+### 💼 Production Readiness
+- ✅ **Real-World Testing**: Validated with complex multi-file proto projects
+- ✅ **Type Safety**: Full compile-time type checking for oneof usage
+- ✅ **Clean Code Generation**: No duplication, proper imports, organized structure
+
 ## v1.0.0 - Initial Release
 
 ### Features

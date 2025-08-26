@@ -151,12 +151,23 @@ class ProtoParser {
             .removePrefix("optional ")
             .trim()
         
-        val parts = withoutLabel.split(Regex("\\s+"))
-        if (parts.size < 3) return null
+        // Handle map types that may contain spaces like "map<string, int32>"
+        val (typeStr, remainingParts) = if (withoutLabel.startsWith("map<")) {
+            val mapEndIndex = withoutLabel.indexOf('>')
+            if (mapEndIndex == -1) return null
+            val mapType = withoutLabel.substring(0, mapEndIndex + 1)
+            val remaining = withoutLabel.substring(mapEndIndex + 1).trim()
+            mapType to remaining.split(Regex("\\s+"))
+        } else {
+            val allParts = withoutLabel.split(Regex("\\s+"))
+            if (allParts.size < 3) return null
+            allParts[0] to allParts.drop(1)
+        }
         
-        val typeStr = parts[0]
-        val fieldName = parts[1]
-        val numberStr = parts.last().substringAfter("=").trim()
+        if (remainingParts.size < 2) return null
+        
+        val fieldName = remainingParts[0]
+        val numberStr = remainingParts.last().substringAfter("=").trim()
         val fieldNumber = numberStr.toIntOrNull() ?: return null
         
         val type = parseType(typeStr)
@@ -173,7 +184,8 @@ class ProtoParser {
         return when {
             typeStr.startsWith("map<") -> {
                 val mapContent = typeStr.substringAfter("map<").substringBefore(">")
-                val (keyType, valueType) = mapContent.split(",").map { it.trim() }
+                val parts = mapContent.split(",").map { it.trim() }
+                val (keyType, valueType) = parts
                 ProtoType.Map(
                     keyType = parseScalarType(keyType) ?: ScalarType.STRING,
                     valueType = parseType(valueType)

@@ -111,7 +111,7 @@ ProtoKotlin is now available as a Gradle plugin! See [PLUGIN_USAGE.md](PLUGIN_US
 ```kotlin
 plugins {
     kotlin("jvm")
-    id("de.markusfluer.protokotlin.plugin") version "1.0.0"
+    id("de.markusfluer.protokotlin.plugin") version "1.1.0"
 }
 
 dependencies {

@@ -220,6 +220,9 @@ class KotlinGenerator(
         }
         
         // Fallback to local resolution
+        if (typeName.isBlank()) {
+            throw IllegalArgumentException("Empty type name in resolveMessageType for file: ${protoFile?.fileName}")
+        }
         return ClassName(packageName, typeName)
     }
     
@@ -264,6 +267,9 @@ class KotlinGenerator(
         }
         
         // Fallback to local resolution
+        if (typeName.isBlank()) {
+            throw IllegalArgumentException("Empty type name in resolveEnumType for file: ${protoFile?.fileName}")
+        }
         return ClassName(packageName, typeName)
     }
     
