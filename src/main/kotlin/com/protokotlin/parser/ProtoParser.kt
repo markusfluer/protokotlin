@@ -81,6 +81,27 @@ class ProtoParser {
         val nestedMessages = mutableListOf<ProtoMessage>()
         val nestedEnums = mutableListOf<ProtoEnum>()
         
+        // CRITICAL FIX: Check if the first line contains content between braces (single-line message)
+        if (firstLine.contains("{") && firstLine.contains("}")) {
+            // Single-line message: extract content between braces
+            val contentBetweenBraces = firstLine.substringAfter("{").substringBeforeLast("}").trim()
+            if (contentBetweenBraces.isNotEmpty()) {
+                // Handle multiple fields separated by semicolons or newlines in single-line format
+                val fieldsToProcess = contentBetweenBraces.split(";").map { it.trim() }.filter { it.isNotEmpty() }
+                fieldsToProcess.forEach { fieldText ->
+                    parseField(fieldText)?.let { fields.add(it) }
+                }
+            }
+            // Return immediately - no need to process additional lines
+            return ProtoMessage(
+                name = messageName,
+                fields = fields,
+                oneofs = oneofs,
+                nestedMessages = nestedMessages,
+                nestedEnums = nestedEnums
+            ) to startIndex + 1
+        }
+        
         var currentIndex = startIndex + 1
         var braceCount = 1
         

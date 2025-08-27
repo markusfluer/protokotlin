@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package heythere;
+
+// Based on the real HeyThere application proto structure
+// that was causing oneof serialization issues
+
+message InboxItem {
+    string id = 1;
+    string from_friend_code = 2;
+    google.protobuf.Timestamp at = 3;
+    bool unread = 4;
+    
+    // This oneof was causing null deserialization in v2.1.2
+    // Fixed in v2.1.3 with @ProtoOneOf annotation
+    oneof payload {
+        HeyThere hey_there = 5;  // Note: field numbers adjusted from migration guide
+        ThinkingOfYou thinking_of_you = 6;
+    }
+}
+
+// Message types that go in the oneof
+message HeyThere {
+    string word = 1;
+    Mood mood = 2;
+    bool first_contact = 3;
+}
+
+message ThinkingOfYou {
+    string text = 1;
+    Mood mood = 2;
+}
+
+enum Mood {
+    HAPPY = 0;
+    SAD = 1;
+    EXCITED = 2;
+    CALM = 3;
+}

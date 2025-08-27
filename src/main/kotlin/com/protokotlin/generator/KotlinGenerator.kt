@@ -15,6 +15,7 @@ class KotlinGenerator(
     private val protoBufSerializableAnnotation = ClassName("kotlinx.serialization", "Serializable")
     private val protoNumberAnnotation = ClassName("kotlinx.serialization.protobuf", "ProtoNumber")
     private val protoPackedAnnotation = ClassName("kotlinx.serialization.protobuf", "ProtoPacked")
+    private val protoOneOfAnnotation = ClassName("kotlinx.serialization.protobuf", "ProtoOneOf")
     private val optInAnnotation = ClassName("kotlin", "OptIn")
     private val experimentalSerializationApiAnnotation = ClassName("kotlinx.serialization", "ExperimentalSerializationApi")
     
@@ -139,6 +140,7 @@ class KotlinGenerator(
             
             val propertyBuilder = PropertySpec.builder(propertyName, oneofTypeName.copy(nullable = true))
                 .initializer(propertyName)
+                .addAnnotation(protoOneOfAnnotation) // Add @ProtoOneOf annotation for oneof fields
             
             classBuilder.addProperty(propertyBuilder.build())
         }

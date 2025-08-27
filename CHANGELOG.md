@@ -1,5 +1,50 @@
 # ProtoKotlin Changelog
 
+## v2.1.3 - Critical Oneof & Single-Line Message Fixes
+
+### 🚨 Critical Bug Fixes
+- ✅ **@ProtoOneOf Annotation**: Fixed missing `@ProtoOneOf` annotation on oneof fields causing null deserialization
+- ✅ **Oneof Serialization**: Oneof fields now deserialize correctly from protobuf binary data
+- ✅ **Single-Line Message Parsing**: Fixed critical bug where single-line message definitions were incorrectly parsed as empty messages
+- ✅ **Data Class Generation**: Messages like `message GetMeResponse { Profile profile = 1; }` now correctly generate as `data class` instead of `object`
+- ✅ **kotlinx.serialization.protobuf Compliance**: Generated oneof fields follow proper kotlinx.serialization requirements
+
+### 🛠️ Technical Fix Details
+- ✅ **Added ProtoOneOf Import**: Included `kotlinx.serialization.protobuf.ProtoOneOf` in generated imports
+- ✅ **Enhanced Parser Logic**: Updated `parseMessage()` to handle single-line message definitions with fields
+- ✅ **Brace Content Extraction**: Parser now extracts and processes content between braces on the same line
+- ✅ **Oneof Field Annotation**: Applied `@ProtoOneOf` annotation to all oneof field properties
+- ✅ **Sealed Class Structure Preserved**: Maintained existing sealed class generation with correct proto numbers
+
+### 🧪 Enhanced Testing
+- ✅ **OneofAnnotationTest**: Comprehensive unit tests for oneof field generation
+- ✅ **Multiple Oneof Support**: Tests for messages with multiple oneof fields
+- ✅ **Annotation Verification**: Tests ensure @ProtoOneOf annotation is correctly applied
+
+### 🎯 Impact
+- **✅ Fixes Critical Serialization Bug**: Oneof fields were always deserializing as null in v2.1.2
+- **✅ No Breaking Changes**: Only adds missing annotation, maintains existing API
+- **✅ Immediate Fix**: Simple regeneration of proto classes resolves the issue
+
+### 🔄 Migration for v2.1.2 Users
+```bash
+# Update ProtoKotlin version to v2.1.3
+# Regenerate proto classes
+./gradlew clean generateProtoKotlin
+
+# Verify @ProtoOneOf annotation is present in generated oneof fields
+```
+
+### Generated Code Fix
+```kotlin
+// v2.1.2 (BROKEN - missing annotation):
+public val payload: Payload? = null,
+
+// v2.1.3 (FIXED - with annotation):
+@ProtoOneOf
+public val payload: Payload? = null,
+```
+
 ## v2.1.2 - Protobuf Timestamp/Duration Support & OptIn Annotations
 
 ### ⏰ Major Timestamp/Duration Fix
