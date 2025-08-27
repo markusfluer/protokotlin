@@ -27,36 +27,41 @@ class WellKnownTypesTest {
             }
         """.trimIndent()
         
-        val typeRegistry = TypeRegistry()
-        val parser = ProtoParser()
-        val protoFile = parser.parse(protoContent, "event.proto")
+        // Create a temporary file for testing
+        val tempFile = kotlin.io.path.createTempFile("test", ".proto")
+        tempFile.toFile().writeText(protoContent)
         
-        // Register the file in the type registry
-        typeRegistry.registerFile(protoFile)
-        
-        val generator = KotlinGenerator("com.example", typeRegistry)
-        val generatedFiles = generator.generate(protoFile)
-        
-        assertNotNull(generatedFiles)
-        assertTrue(generatedFiles.containsKey("Event.kt"))
-        
-        val eventClass = generatedFiles["Event.kt"]!!
-        println("Generated Event.kt:")
-        println(eventClass)
-        
-        // Verify imports
-        assertContains(eventClass, "import kotlinx.datetime.Instant")
-        
-        // Verify field types are kotlinx.datetime.Instant
-        assertContains(eventClass, "createdAt: Instant? = null")
-        assertContains(eventClass, "updatedAt: Instant? = null")
-        
-        // Verify @Serializable annotation is present
-        assertContains(eventClass, "@Serializable")
-        
-        // Verify proto field numbers
-        assertContains(eventClass, "@ProtoNumber(2)")
-        assertContains(eventClass, "@ProtoNumber(3)")
+        try {
+            // Test using ProtoCompiler (the main entry point)
+            val compiler = ProtoCompiler("com.example")
+            val generatedFiles = compiler.compile(listOf(tempFile.toFile()))
+            
+            assertNotNull(generatedFiles)
+            assertTrue(generatedFiles.containsKey("ProtoMessages.kt"))
+            
+            val protoMessagesFile = generatedFiles["ProtoMessages.kt"]!!
+            println("Generated ProtoMessages.kt:")
+            println(protoMessagesFile)
+            
+            // Verify Timestamp structure is generated
+            assertContains(protoMessagesFile, "data class Timestamp")
+            assertContains(protoMessagesFile, "seconds: Long")
+            assertContains(protoMessagesFile, "nanos: Int")
+            
+            // Verify Event message uses Timestamp fields
+            assertContains(protoMessagesFile, "createdAt: Timestamp? = null")
+            assertContains(protoMessagesFile, "updatedAt: Timestamp? = null")
+            
+            // Verify @Serializable annotation is present
+            assertContains(protoMessagesFile, "@Serializable")
+            
+            // Verify proto field numbers
+            assertContains(protoMessagesFile, "@ProtoNumber(2)")
+            assertContains(protoMessagesFile, "@ProtoNumber(3)")
+        } finally {
+            // Clean up
+            tempFile.toFile().delete()
+        }
     }
     
     @Test
@@ -75,31 +80,37 @@ class WellKnownTypesTest {
             }
         """.trimIndent()
         
-        val typeRegistry = TypeRegistry()
-        val parser = ProtoParser()
-        val protoFile = parser.parse(protoContent, "task.proto")
+        // Create a temporary file for testing
+        val tempFile = kotlin.io.path.createTempFile("test", ".proto")
+        tempFile.toFile().writeText(protoContent)
         
-        typeRegistry.registerFile(protoFile)
-        
-        val generator = KotlinGenerator("com.example", typeRegistry)
-        val generatedFiles = generator.generate(protoFile)
-        
-        assertNotNull(generatedFiles)
-        assertTrue(generatedFiles.containsKey("Task.kt"))
-        
-        val taskClass = generatedFiles["Task.kt"]!!
-        println("Generated Task.kt:")
-        println(taskClass)
-        
-        // Verify imports
-        assertContains(taskClass, "import kotlin.time.Duration")
-        
-        // Verify field types are kotlin.time.Duration
-        assertContains(taskClass, "timeout: Duration? = null")
-        assertContains(taskClass, "estimatedDuration: Duration? = null")
-        
-        // Verify @Serializable annotation
-        assertContains(taskClass, "@Serializable")
+        try {
+            // Test using ProtoCompiler (the main entry point)
+            val compiler = ProtoCompiler("com.example")
+            val generatedFiles = compiler.compile(listOf(tempFile.toFile()))
+            
+            assertNotNull(generatedFiles)
+            assertTrue(generatedFiles.containsKey("ProtoMessages.kt"))
+            
+            val protoMessagesFile = generatedFiles["ProtoMessages.kt"]!!
+            println("Generated ProtoMessages.kt:")
+            println(protoMessagesFile)
+            
+            // Verify Duration structure is generated
+            assertContains(protoMessagesFile, "data class Duration")
+            assertContains(protoMessagesFile, "seconds: Long")
+            assertContains(protoMessagesFile, "nanos: Int")
+            
+            // Verify Task message uses Duration fields
+            assertContains(protoMessagesFile, "timeout: Duration? = null")
+            assertContains(protoMessagesFile, "estimatedDuration: Duration? = null")
+            
+            // Verify @Serializable annotation
+            assertContains(protoMessagesFile, "@Serializable")
+        } finally {
+            // Clean up
+            tempFile.toFile().delete()
+        }
     }
     
     @Test

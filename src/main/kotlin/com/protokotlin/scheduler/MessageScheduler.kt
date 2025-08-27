@@ -129,7 +129,28 @@ class MessageScheduler(
         // Create a file that contains all messages
         val fileBuilder = com.squareup.kotlinpoet.FileSpec.builder(packageName, "ProtoMessages")
         
-        // Add all messages to the single file
+        // First, check if we need to include well-known types
+        val referencedWellKnownTypes = findReferencedWellKnownTypes()
+        
+        // Add well-known types if referenced
+        referencedWellKnownTypes.forEach { wellKnownTypeName ->
+            val resolvedType = typeRegistry.resolveType(wellKnownTypeName, "", "")
+            if (resolvedType is TypeRegistry.ResolvedType.Message) {
+                val contextFile = ProtoFile(
+                    fileName = resolvedType.info.file,
+                    packageName = resolvedType.info.packageName,
+                    imports = emptyList(),
+                    messages = emptyList(),
+                    enums = emptyList(),
+                    services = emptyList()
+                )
+                
+                val wellKnownClass = generator.generateDataClass(resolvedType.info.message, contextFile)
+                fileBuilder.addType(wellKnownClass)
+            }
+        }
+        
+        // Add all user-defined messages to the single file
         messages.forEach { scheduled ->
             val contextFile = ProtoFile(
                 fileName = scheduled.sourceFile,
@@ -146,6 +167,62 @@ class MessageScheduler(
         }
         
         return fileBuilder.build().toString()
+    }
+    
+    /**
+     * Find all well-known types referenced by scheduled messages
+     */
+    private fun findReferencedWellKnownTypes(): Set<String> {
+        val referencedTypes = mutableSetOf<String>()
+        
+        messages.forEach { scheduled ->
+            findReferencedWellKnownTypesInMessage(scheduled.message, referencedTypes)
+        }
+        
+        return referencedTypes
+    }
+    
+    /**
+     * Recursively find well-known types referenced in a message
+     */
+    private fun findReferencedWellKnownTypesInMessage(message: ProtoMessage, referencedTypes: MutableSet<String>) {
+        message.fields.forEach { field ->
+            when (field.type) {
+                is ProtoType.Message -> {
+                    if (field.type.name.startsWith("google.protobuf.")) {
+                        referencedTypes.add(field.type.name)
+                    }
+                }
+                is ProtoType.Map -> {
+                    if (field.type.valueType is ProtoType.Message) {
+                        val messageType = field.type.valueType as ProtoType.Message
+                        if (messageType.name.startsWith("google.protobuf.")) {
+                            referencedTypes.add(messageType.name)
+                        }
+                    }
+                }
+                else -> { /* ignore scalars and enums */ }
+            }
+        }
+        
+        // Check nested messages recursively
+        message.nestedMessages.forEach { nestedMessage ->
+            findReferencedWellKnownTypesInMessage(nestedMessage, referencedTypes)
+        }
+        
+        // Check oneof fields
+        message.oneofs.forEach { oneof ->
+            oneof.fields.forEach { field ->
+                when (field.type) {
+                    is ProtoType.Message -> {
+                        if (field.type.name.startsWith("google.protobuf.")) {
+                            referencedTypes.add(field.type.name)
+                        }
+                    }
+                    else -> { /* ignore scalars and enums */ }
+                }
+            }
+        }
     }
     
     private fun generateOneofFile(scheduled: ScheduledOneof): String {

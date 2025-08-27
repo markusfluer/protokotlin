@@ -15,6 +15,8 @@ class KotlinGenerator(
     private val protoBufSerializableAnnotation = ClassName("kotlinx.serialization", "Serializable")
     private val protoNumberAnnotation = ClassName("kotlinx.serialization.protobuf", "ProtoNumber")
     private val protoPackedAnnotation = ClassName("kotlinx.serialization.protobuf", "ProtoPacked")
+    private val optInAnnotation = ClassName("kotlin", "OptIn")
+    private val experimentalSerializationApiAnnotation = ClassName("kotlinx.serialization", "ExperimentalSerializationApi")
     
     fun generate(protoFile: ProtoFile): Map<String, String> {
         val files = mutableMapOf<String, String>()
@@ -70,10 +72,20 @@ class KotlinGenerator(
         val classBuilder = if (isEmpty) {
             // Generate object for empty messages since data classes require at least one parameter
             TypeSpec.objectBuilder(message.name)
+                .addAnnotation(
+                    AnnotationSpec.builder(optInAnnotation)
+                        .addMember("%T::class", experimentalSerializationApiAnnotation)
+                        .build()
+                )
                 .addAnnotation(protoBufSerializableAnnotation)
         } else {
             TypeSpec.classBuilder(message.name)
                 .addModifiers(KModifier.DATA)
+                .addAnnotation(
+                    AnnotationSpec.builder(optInAnnotation)
+                        .addMember("%T::class", experimentalSerializationApiAnnotation)
+                        .build()
+                )
                 .addAnnotation(protoBufSerializableAnnotation)
         }
         
@@ -138,6 +150,11 @@ class KotlinGenerator(
     
     private fun generateEnum(enum: ProtoEnum): TypeSpec {
         val enumBuilder = TypeSpec.enumBuilder(enum.name)
+            .addAnnotation(
+                AnnotationSpec.builder(optInAnnotation)
+                    .addMember("%T::class", experimentalSerializationApiAnnotation)
+                    .build()
+            )
             .addAnnotation(protoBufSerializableAnnotation)
         
         enum.values.forEach { value ->
@@ -328,8 +345,8 @@ class KotlinGenerator(
     
     private fun mapWellKnownTypeToKotlin(typeName: String): TypeName? {
         return when (typeName) {
-            "kotlinx.datetime.Instant" -> ClassName("kotlinx.datetime", "Instant")
-            "kotlin.time.Duration" -> ClassName("kotlin.time", "Duration")
+            // Note: Timestamp and Duration are now handled as proper protobuf messages
+            // with seconds and nanos fields, not as direct kotlinx types
             else -> null
         }
     }
@@ -339,6 +356,11 @@ class KotlinGenerator(
         
         val sealedClassBuilder = TypeSpec.classBuilder(sealedClassName)
             .addModifiers(KModifier.SEALED)
+            .addAnnotation(
+                AnnotationSpec.builder(optInAnnotation)
+                    .addMember("%T::class", experimentalSerializationApiAnnotation)
+                    .build()
+            )
             .addAnnotation(protoBufSerializableAnnotation)
         
         // Add nested data classes for each oneof option

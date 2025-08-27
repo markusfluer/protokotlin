@@ -17,6 +17,10 @@ class TypeRegistry {
     // Map of file path to its dependencies (imports)
     private val fileDependencies = mutableMapOf<String, Set<String>>()
     
+    init {
+        registerWellKnownTypes()
+    }
+    
     data class MessageTypeInfo(
         val message: ProtoMessage,
         val packageName: String?,
@@ -224,12 +228,76 @@ class TypeRegistry {
     }
     
     /**
-     * Map Google well-known types to Kotlin types
+     * Register Google well-known types as proper protobuf structures
+     */
+    private fun registerWellKnownTypes() {
+        // Register google.protobuf.Timestamp
+        val timestampMessage = ProtoMessage(
+            name = "Timestamp",
+            fields = listOf(
+                ProtoField(
+                    name = "seconds",
+                    type = ProtoType.Scalar(ScalarType.INT64),
+                    number = 1,
+                    label = FieldLabel.OPTIONAL
+                ),
+                ProtoField(
+                    name = "nanos",
+                    type = ProtoType.Scalar(ScalarType.INT32), 
+                    number = 2,
+                    label = FieldLabel.OPTIONAL
+                )
+            ),
+            oneofs = emptyList(),
+            nestedMessages = emptyList(),
+            nestedEnums = emptyList()
+        )
+        
+        val timestampInfo = MessageTypeInfo(
+            message = timestampMessage,
+            packageName = "google.protobuf", 
+            file = "google/protobuf/timestamp.proto"
+        )
+        messages["google.protobuf.Timestamp"] = timestampInfo
+        
+        // Register google.protobuf.Duration
+        val durationMessage = ProtoMessage(
+            name = "Duration",
+            fields = listOf(
+                ProtoField(
+                    name = "seconds",
+                    type = ProtoType.Scalar(ScalarType.INT64),
+                    number = 1,
+                    label = FieldLabel.OPTIONAL
+                ),
+                ProtoField(
+                    name = "nanos",
+                    type = ProtoType.Scalar(ScalarType.INT32),
+                    number = 2, 
+                    label = FieldLabel.OPTIONAL
+                )
+            ),
+            oneofs = emptyList(),
+            nestedMessages = emptyList(),
+            nestedEnums = emptyList()
+        )
+        
+        val durationInfo = MessageTypeInfo(
+            message = durationMessage,
+            packageName = "google.protobuf",
+            file = "google/protobuf/duration.proto"
+        )
+        messages["google.protobuf.Duration"] = durationInfo
+    }
+    
+    /**
+     * Map Google well-known types to Kotlin types (for wrapper types)
      */
     private fun mapWellKnownType(typeName: String): String? {
         return when (typeName) {
-            "google.protobuf.Timestamp" -> "kotlinx.datetime.Instant"
-            "google.protobuf.Duration" -> "kotlin.time.Duration"
+            // These are now handled as proper messages above, not mapped to scalars
+            //"google.protobuf.Timestamp" -> "kotlinx.datetime.Instant"
+            //"google.protobuf.Duration" -> "kotlin.time.Duration"
             "google.protobuf.Any" -> "string"        // For now, map to String
             "google.protobuf.Empty" -> null          // Empty should be Unit but we'll handle separately
             "google.protobuf.StringValue" -> "string"
