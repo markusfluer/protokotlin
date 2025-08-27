@@ -1,5 +1,18 @@
 # ProtoKotlin Changelog
 
+## v2.1.4 - Version Alignment Release
+
+### 🔄 Version Numbering Fix
+- ✅ **Version Alignment**: Updated version to v2.1.4 to maintain correct sequential numbering
+- ✅ **No Functional Changes**: This release contains no code changes from v2.1.3
+- ✅ **Packaging Update**: Ensures proper version sequence for future releases
+
+### 📋 Summary
+This is a maintenance release to align the version numbering after the previous v2.1.3 release. 
+All functionality remains identical to v2.1.3 - both critical bug fixes are included:
+- @ProtoOneOf annotation fix for oneof serialization
+- Single-line message parsing fix
+
 ## v2.1.3 - Critical Oneof & Single-Line Message Fixes
 
 ### 🚨 Critical Bug Fixes
