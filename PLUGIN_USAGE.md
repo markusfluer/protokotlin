@@ -11,11 +11,12 @@ Add to your `build.gradle.kts`:
 ```kotlin
 plugins {
     kotlin("jvm")
-    id("de.markusfluer.protokotlin.plugin") version "2.1.1"
+    id("de.markusfluer.protokotlin.plugin") version "2.1.2"
 }
 
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-protobuf:1.6.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1") // For timestamp conversion utilities
 }
 ```
 
@@ -39,10 +40,13 @@ Create your `.proto` files in `src/main/proto/`:
 // src/main/proto/user.proto
 syntax = "proto3";
 
+import "google/protobuf/timestamp.proto";
+
 message User {
     string name = 1;
     int32 age = 2;
     bool active = 3;
+    google.protobuf.Timestamp created_at = 4;
 }
 ```
 
@@ -55,8 +59,10 @@ message User {
 The plugin will:
 1. ✅ Automatically find all `.proto` files in your configured directory
 2. ✅ Generate Kotlin DTOs with kotlinx.serialization annotations
-3. ✅ Add generated sources to your Kotlin source set
-4. ✅ Run before compilation automatically
+3. ✅ Include @OptIn(ExperimentalSerializationApi::class) for protobuf compatibility
+4. ✅ Generate protobuf-compatible Timestamp/Duration structures when used
+5. ✅ Add generated sources to your Kotlin source set
+6. ✅ Run before compilation automatically
 
 ## Configuration Options
 
@@ -97,8 +103,14 @@ The plugin generates Kotlin data classes with:
 
 ✅ **kotlinx.serialization Compatible**
 - `@Serializable` annotation on all classes
+- `@OptIn(ExperimentalSerializationApi::class)` for protobuf compatibility
 - `@ProtoNumber` annotations for field numbering
 - `@ProtoPacked` annotations for repeated fields
+
+✅ **Google Well-Known Types Support**
+- Protobuf-compatible `Timestamp(seconds, nanos)` structure
+- Protobuf-compatible `Duration(seconds, nanos)` structure  
+- Built-in conversion utilities to kotlinx.datetime and kotlin.time types
 
 ✅ **Proto3 Compliant**
 - Nullable fields with `null` defaults
@@ -115,24 +127,43 @@ The plugin generates Kotlin data classes with:
 ```protobuf
 syntax = "proto3";
 
+import "google/protobuf/timestamp.proto";
+
 message User {
     string user_name = 1;
     int32 age = 2;
     repeated string roles = 3;
+    google.protobuf.Timestamp created_at = 4;
 }
 ```
 
-**Generated** (`User.kt`):
+**Generated** (`ProtoMessages.kt`):
 ```kotlin
 package com.example.generated
 
 import kotlin.Int
+import kotlin.Long
+import kotlin.OptIn
 import kotlin.String
 import kotlin.collections.List
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.protobuf.ProtoNumber
 import kotlinx.serialization.protobuf.ProtoPacked
 
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class Timestamp(
+  @ProtoNumber(1)
+  val seconds: Long = 0L,
+  @ProtoNumber(2)
+  val nanos: Int = 0,
+) {
+  fun toInstant(): kotlinx.datetime.Instant = 
+    kotlinx.datetime.Instant.fromEpochSeconds(seconds, nanos.toLong())
+}
+
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class User(
   @ProtoNumber(1)
@@ -142,7 +173,27 @@ data class User(
   @ProtoNumber(3)
   @ProtoPacked
   val roles: List<String> = emptyList(),
+  @ProtoNumber(4)
+  val createdAt: Timestamp? = null,
 )
+```
+
+### Using Generated Types
+```kotlin
+// Create user with timestamp
+val user = User(
+    userName = "john_doe",
+    age = 30,
+    roles = listOf("admin", "user"),
+    createdAt = Timestamp.fromInstant(Clock.System.now())
+)
+
+// Convert timestamp to kotlinx.datetime.Instant when needed
+val instant = user.createdAt?.toInstant()
+
+// Protobuf serialization works correctly
+val bytes = ProtoBuf.encodeToByteArray(user)
+val decoded = ProtoBuf.decodeFromByteArray<User>(bytes)
 ```
 
 ## Tasks
@@ -247,8 +298,9 @@ Generated files will be automatically recognized by IDEs:
 ```
 > Unresolved reference: GeneratedClass
 ```
-- Run `./gradlew generateProtoKotlin` manually
+- Run `./gradlew clean generateProtoKotlin` manually
 - Check that generated files are in correct package
+- Verify `@OptIn(ExperimentalSerializationApi::class)` is included in generated code
 
 **3. Plugin not found**
 ```
@@ -256,6 +308,15 @@ Generated files will be automatically recognized by IDEs:
 ```
 - Check plugin version in `plugins` block
 - Ensure plugin is published to repository
+
+**4. Serialization errors with timestamps**
+```
+> kotlinx.datetime.DateTimeFormatException: Failed to parse an instant from '������'
+```
+- This indicates stale generated code or wrong timestamp mapping
+- Run `./gradlew clean generateProtoKotlin --rerun-tasks`
+- Verify generated code uses `Timestamp(seconds, nanos)` structure, not direct `Instant`
+- Update code to use `timestamp.toInstant()` for conversion
 
 ### Debug Information
 
@@ -277,6 +338,7 @@ The plugin automatically handles most dependencies, but ensure you have:
 ```kotlin
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-protobuf:1.6.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1") // For timestamp conversion utilities
 }
 ```
 

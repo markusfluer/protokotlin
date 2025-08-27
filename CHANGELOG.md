@@ -1,5 +1,43 @@
 # ProtoKotlin Changelog
 
+## v2.1.2 - Protobuf Timestamp/Duration Support & OptIn Annotations
+
+### ⏰ Major Timestamp/Duration Fix
+- ✅ **Protobuf-Compatible Structures**: `google.protobuf.Timestamp` now generates proper `Timestamp(seconds: Long, nanos: Int)` structure
+- ✅ **Protobuf-Compatible Structures**: `google.protobuf.Duration` now generates proper `Duration(seconds: Long, nanos: Int)` structure
+- ✅ **Fixes Serialization Errors**: Resolves `DateTimeFormatException` when deserializing protobuf binary data
+- ✅ **Conversion Utilities**: Built-in `toInstant()`, `fromInstant()`, `toDuration()`, `fromDuration()` methods
+
+### 🔧 kotlinx.serialization.protobuf Compatibility
+- ✅ **@OptIn Annotations**: Automatic inclusion of `@OptIn(ExperimentalSerializationApi::class)` on all generated classes
+- ✅ **Experimental API Support**: Proper handling of kotlinx.serialization.protobuf experimental features
+- ✅ **Enhanced Code Generation**: All `@Serializable` classes include required OptIn annotations
+
+### 🛠️ Technical Improvements
+- ✅ **Well-Known Types Registry**: Google protobuf types registered as proper message structures with seconds/nanos fields
+- ✅ **Automatic Type Inclusion**: Referenced well-known types automatically included in generated ProtoMessages.kt
+- ✅ **Binary Serialization Compatibility**: Generated structures work correctly with protobuf binary encoding/decoding
+
+### 📖 Comprehensive Documentation
+- ✅ **Migration Guide**: Complete guide for updating from direct kotlinx.datetime.Instant usage
+- ✅ **Troubleshooting Documentation**: Detailed solutions for payload transformation issues
+- ✅ **Serialization Testing Guide**: Examples and test patterns for protobuf compatibility
+
+### 🎯 Benefits
+- **✅ No More Deserialization Errors**: Fixes runtime failures when server sends protobuf binary data
+- **✅ True Protobuf Compatibility**: Generated code works with actual protobuf wire format
+- **✅ Easy Migration**: Utility functions provide seamless conversion to kotlinx types when needed
+- **✅ Type Safety**: Compile-time validation of protobuf structure integrity
+
+### 🔄 Migration Required
+```kotlin
+// Old (causes runtime errors):
+val instant: Instant? = message.createdAt
+
+// New (works correctly):
+val instant: Instant? = message.createdAt?.toInstant()
+```
+
 ## v2.1.1 - Organized File Structure & Duplicate Prevention
 
 ### 🗂️ Major File Structure Improvement

@@ -79,7 +79,7 @@ ProtoKotlin is a Protocol Buffer to Kotlin DTO generator with both CLI and Gradl
 - **Annotation Strategy**: Every field has explicit `@ProtoNumber`, lists have `@ProtoPacked`  
 - **Code Generation**: Uses KotlinPoet for clean, idiomatic Kotlin output
 - **Import Resolution**: Multi-file proto projects supported with cross-file type references
-- **Google Well-Known Types**: `google.protobuf.Timestamp` → `kotlinx.datetime.Instant`, `google.protobuf.Duration` → `kotlin.time.Duration`
+- **Google Well-Known Types**: Proper protobuf structures with conversion utilities (`google.protobuf.Timestamp` → `Timestamp(seconds, nanos)` with `toInstant()` method)
 - **Build Integration**: Plugin automatically hooks into Kotlin compilation
 
 ### File Organization
