@@ -16,6 +16,7 @@ class KotlinGenerator(
     private val protoNumberAnnotation = ClassName("kotlinx.serialization.protobuf", "ProtoNumber")
     private val protoPackedAnnotation = ClassName("kotlinx.serialization.protobuf", "ProtoPacked")
     private val protoOneOfAnnotation = ClassName("kotlinx.serialization.protobuf", "ProtoOneOf")
+    private val serialNameAnnotation = ClassName("kotlinx.serialization", "SerialName")
     private val optInAnnotation = ClassName("kotlin", "OptIn")
     private val experimentalSerializationApiAnnotation = ClassName("kotlinx.serialization", "ExperimentalSerializationApi")
     
@@ -358,12 +359,12 @@ class KotlinGenerator(
         
         val sealedClassBuilder = TypeSpec.classBuilder(sealedClassName)
             .addModifiers(KModifier.SEALED)
+            .addAnnotation(protoBufSerializableAnnotation)
             .addAnnotation(
                 AnnotationSpec.builder(optInAnnotation)
                     .addMember("%T::class", experimentalSerializationApiAnnotation)
                     .build()
             )
-            .addAnnotation(protoBufSerializableAnnotation)
         
         // Add nested data classes for each oneof option
         oneof.fields.forEach { field ->
@@ -372,6 +373,12 @@ class KotlinGenerator(
             
             val optionClass = TypeSpec.classBuilder(optionClassName)
                 .addModifiers(KModifier.DATA)
+                .addAnnotation(protoBufSerializableAnnotation)
+                .addAnnotation(
+                    AnnotationSpec.builder(serialNameAnnotation)
+                        .addMember("%S", field.name)
+                        .build()
+                )
                 .superclass(ClassName(packageName, sealedClassName))
                 .primaryConstructor(
                     FunSpec.constructorBuilder()
